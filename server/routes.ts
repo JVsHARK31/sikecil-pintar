@@ -186,7 +186,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const rawResponse = await callSumopodAPI(apiKey, "gemini/gemini-2.0-flash", dataURL);
+      console.log("Raw AI response:", JSON.stringify(rawResponse, null, 2));
+      
       const jsonData = extractJSON(rawResponse);
+      console.log("Extracted JSON:", JSON.stringify(jsonData, null, 2));
       
       // Validate response against schema
       const analysis = NutritionAnalysisSchema.parse(jsonData);

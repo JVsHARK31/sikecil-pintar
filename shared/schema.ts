@@ -43,14 +43,14 @@ export const FoodItemSchema = z.object({
 });
 
 export const ImageMetaSchema = z.object({
-  width: z.number().positive(),
-  height: z.number().positive(),
+  width: z.number().min(0),
+  height: z.number().min(0),
   orientation: z.enum(['portrait', 'landscape', 'square']),
 });
 
 export const NutritionAnalysisSchema = z.object({
   image_meta: ImageMetaSchema,
-  composition: z.array(FoodItemSchema).min(1),
+  composition: z.array(FoodItemSchema),
   totals: z.object({
     serving_total_g: z.number().min(0),
     calories_kcal: z.number().min(0),
