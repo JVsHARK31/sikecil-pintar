@@ -3,51 +3,45 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Trash2, Download, ChevronLeft, Filter } from "lucide-react";
-import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import type { Meal, NutritionAnalysis } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import type { NutritionAnalysis } from "@shared/schema";
+import { getMeals, getMealsByDateRange, deleteMeal, type LocalMeal } from "@/lib/localStore";
 
 interface MealHistoryProps {
   onBack: () => void;
 }
 
 export function MealHistory({ onBack }: MealHistoryProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
 
   const { data: meals = [], isLoading } = useQuery({
-    queryKey: ['/api/meals', user?.id, selectedPeriod],
+    queryKey: ['meals', selectedPeriod],
     queryFn: async () => {
-      if (!user) return [];
-      
-      let url = `/api/meals/${user.id}`;
-      if (selectedPeriod !== 'all') {
+      if (selectedPeriod === 'all') {
+        return getMeals();
+      } else {
         const endDate = new Date();
         const startDate = new Date();
         startDate.setDate(endDate.getDate() - (selectedPeriod === 'week' ? 7 : 30));
-        url += `/range?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+        return getMealsByDateRange(startDate, endDate);
       }
-      
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch meals');
-      return response.json() as Promise<Meal[]>;
     },
-    enabled: !!user,
   });
 
   const deleteMealMutation = useMutation({
-    mutationFn: async (mealId: number) => {
-      if (!user) throw new Error('User not authenticated');
-      const response = await apiRequest('DELETE', `/api/meals/${mealId}/${user.id}`);
-      return response.json();
+    mutationFn: async (mealId: string) => {
+      const success = deleteMeal(mealId);
+      if (!success) {
+        throw new Error('Meal not found');
+      }
+      return success;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/meals'] });
+      queryClient.invalidateQueries({ queryKey: ['meals'] });
       toast({
         title: "Meal deleted",
         description: "The meal has been removed from your history.",
@@ -85,14 +79,6 @@ export function MealHistory({ onBack }: MealHistoryProps) {
   };
 
   const totals = getTotalNutrition();
-
-  if (!user) {
-    return (
-      <div className="text-center p-8">
-        <p className="text-muted-foreground">Please log in to view your meal history.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto p-4 space-y-6">

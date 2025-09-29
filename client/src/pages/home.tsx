@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, Upload, History, LogOut, Save, User, Target } from "lucide-react";
+import { Camera, Upload, History, Save, Target } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CameraPanel } from "@/components/camera-panel";
 import { UploadPanel } from "@/components/upload-panel";
@@ -14,7 +14,7 @@ import { MealHistory } from "@/pages/meal-history";
 import { NutritionGoalsPage } from "@/pages/nutrition-goals";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/auth-context";
+import { addMeal } from "@/lib/localStore";
 import type { NutritionAnalysis } from "@shared/schema";
 
 export default function Home() {
@@ -24,7 +24,6 @@ export default function Home() {
   const [showMealHistory, setShowMealHistory] = useState(false);
   const [showNutritionGoals, setShowNutritionGoals] = useState(false);
   const { toast } = useToast();
-  const { user, logout } = useAuth();
   const queryClient = useQueryClient();
 
   const cameraMutation = useMutation({
@@ -79,15 +78,10 @@ export default function Home() {
       analysisData: NutritionAnalysis; 
       imageUrl?: string; 
     }) => {
-      if (!user) throw new Error('User not authenticated');
-      const response = await apiRequest("POST", "/api/meals", {
-        userId: user.id,
-        ...mealData,
-      });
-      return response.json();
+      return addMeal(mealData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/meals'] });
+      queryClient.invalidateQueries({ queryKey: ['meals'] });
       toast({
         title: "Meal saved!",
         description: "Your meal has been added to your history.",
@@ -161,23 +155,6 @@ export default function Home() {
               >
                 <History className="h-4 w-4" />
                 <span>History</span>
-              </Button>
-              
-              <div className="flex items-center space-x-2 text-sm">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">
-                  {user?.fullName || user?.username}
-                </span>
-              </div>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={logout}
-                className="text-muted-foreground hover:text-foreground"
-                data-testid="button-logout"
-              >
-                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>

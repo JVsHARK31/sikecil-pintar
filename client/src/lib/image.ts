@@ -52,26 +52,58 @@ export function fixImageOrientation(imageElement: HTMLImageElement): Promise<str
 }
 
 export function resizeImageIfNeeded(dataURL: string, maxSize: number = 1024): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const img = new Image();
+    
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
-      
-      let { width, height } = img;
-      
-      if (width > maxSize || height > maxSize) {
-        const ratio = Math.min(maxSize / width, maxSize / height);
-        width *= ratio;
-        height *= ratio;
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          resolve(dataURL); // Return original if canvas fails
+          return;
+        }
+        
+        let { width, height } = img;
+        
+        // Check if image has valid dimensions
+        if (width === 0 || height === 0) {
+          resolve(dataURL); // Return original if dimensions are invalid
+          return;
+        }
+        
+        if (width > maxSize || height > maxSize) {
+          const ratio = Math.min(maxSize / width, maxSize / height);
+          width = Math.floor(width * ratio);
+          height = Math.floor(height * ratio);
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Start with high compression
+        let quality = 0.7;
+        let resizedDataURL = canvas.toDataURL('image/jpeg', quality);
+        
+        // If still too large (>1MB as base64), compress further
+        while (resizedDataURL.length > 1024 * 1024 && quality > 0.3) {
+          quality -= 0.1;
+          resizedDataURL = canvas.toDataURL('image/jpeg', quality);
+        }
+        
+        resolve(resizedDataURL);
+      } catch (error) {
+        resolve(dataURL); // Return original if resize fails
       }
-      
-      canvas.width = width;
-      canvas.height = height;
-      
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', 0.9));
     };
+    
+    img.onerror = () => {
+      resolve(dataURL); // Return original if load fails
+    };
+    
     img.src = dataURL;
   });
 }

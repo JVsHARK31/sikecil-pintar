@@ -92,10 +92,16 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
 
     ctx.drawImage(video, 0, 0);
     
-    let dataURL = canvas.toDataURL('image/jpeg', 0.9);
+    let dataURL = canvas.toDataURL('image/jpeg', 0.7);
     
-    // Resize if needed to keep file size manageable
-    dataURL = await resizeImageIfNeeded(dataURL, 1024);
+    // Resize and compress to match upload limits
+    dataURL = await resizeImageIfNeeded(dataURL, 800);
+    
+    // Check compressed size - same as upload path
+    if (dataURL.length > 512 * 1024) {
+      setError('Captured image is too large. Please try with better lighting or a different angle.');
+      return;
+    }
     
     onCapture(dataURL);
   };

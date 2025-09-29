@@ -20,8 +20,9 @@ export function UploadPanel({ onUpload, isAnalyzing }: UploadPanelProps) {
       return;
     }
 
-    if (file.size > 8 * 1024 * 1024) {
-      alert('File size must be less than 8MB');
+    // Allow larger files initially, compress first then check
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
       return;
     }
 
@@ -30,8 +31,14 @@ export function UploadPanel({ onUpload, isAnalyzing }: UploadPanelProps) {
       if (e.target?.result) {
         let dataURL = e.target.result as string;
         
-        // Resize if needed
-        dataURL = await resizeImageIfNeeded(dataURL, 1024);
+        // Resize and compress aggressively to avoid 413 errors
+        dataURL = await resizeImageIfNeeded(dataURL, 800);
+        
+        // Check compressed size - aim for 512KB to provide headroom
+        if (dataURL.length > 512 * 1024) {
+          alert('Image is too large after compression. Please try a smaller image or different format.');
+          return;
+        }
         
         setPreviewImage(dataURL);
       }
@@ -106,7 +113,7 @@ export function UploadPanel({ onUpload, isAnalyzing }: UploadPanelProps) {
               Choose File
             </Button>
             <p className="text-xs text-muted-foreground mt-3">
-              Supports JPG, PNG, WebP up to 8MB
+              Supports JPG, PNG, WebP up to 10MB (auto-compressed)
             </p>
           </div>
 

@@ -9,10 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Target, Activity, TrendingUp, Save } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/auth-context";
-import type { NutritionGoals, InsertNutritionGoals } from "@shared/schema";
+import { getGoals, setGoals, type LocalNutritionGoals } from "@/lib/localStore";
 
 const nutritionGoalsFormSchema = z.object({
   dailyCalories: z.coerce.number().min(800).max(5000).optional(),
@@ -29,7 +27,6 @@ interface NutritionGoalsPageProps {
 }
 
 export function NutritionGoalsPage({ onBack }: NutritionGoalsPageProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -46,18 +43,10 @@ export function NutritionGoalsPage({ onBack }: NutritionGoalsPageProps) {
 
   // Fetch existing nutrition goals
   const { data: nutritionGoals, isLoading } = useQuery({
-    queryKey: ['/api/nutrition-goals', user?.id],
+    queryKey: ['goals'],
     queryFn: async () => {
-      if (!user) return null;
-      try {
-        const response = await apiRequest("GET", `/api/nutrition-goals/${user.id}`);
-        return response.json() as Promise<NutritionGoals>;
-      } catch (error) {
-        // Goals not found, return null
-        return null;
-      }
+      return getGoals();
     },
-    enabled: !!user,
   });
 
   // Populate form with existing goals
@@ -76,10 +65,7 @@ export function NutritionGoalsPage({ onBack }: NutritionGoalsPageProps) {
   // Create or update nutrition goals
   const saveMutation = useMutation({
     mutationFn: async (data: NutritionGoalsFormData) => {
-      if (!user) throw new Error('User not authenticated');
-      
-      const goalsData: InsertNutritionGoals = {
-        userId: user.id,
+      const goalsData = {
         dailyCalories: data.dailyCalories || null,
         dailyProtein: data.dailyProtein || null,
         dailyCarbs: data.dailyCarbs || null,
@@ -87,18 +73,10 @@ export function NutritionGoalsPage({ onBack }: NutritionGoalsPageProps) {
         dailyFiber: data.dailyFiber || null,
       };
 
-      if (nutritionGoals) {
-        // Update existing goals
-        const response = await apiRequest("PUT", `/api/nutrition-goals/${user.id}`, goalsData);
-        return response.json();
-      } else {
-        // Create new goals
-        const response = await apiRequest("POST", "/api/nutrition-goals", goalsData);
-        return response.json();
-      }
+      return setGoals(goalsData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/nutrition-goals', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
       toast({
         title: "Goals saved!",
         description: "Your nutrition goals have been updated successfully.",
