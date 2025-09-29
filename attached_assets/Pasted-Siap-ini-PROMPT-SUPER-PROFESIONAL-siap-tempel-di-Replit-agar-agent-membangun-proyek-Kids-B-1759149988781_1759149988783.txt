@@ -1,0 +1,327 @@
+Siap—ini **PROMPT SUPER PROFESIONAL (siap-tempel di Replit)** agar agent membangun proyek **“Kids -B-Care”** lengkap, terintegrasi, akurat, dan **siap deploy di Vercel**. Aplikasi:
+
+* **Bisa upload gambar** *dan* **buka kamera (webcam/mobile)**.
+* Pakai **Sumopod API** dengan **model `gemini-2.0-flash`** khusus *image upload* **dan** **model `gpt-5-nano`** khusus *webcam/camera*.
+* Menghasilkan **komposisi makanan** (multi-item)—mis. “nasi goreng + kerupuk + sayur + telur + sosis”, lengkap dengan **perkiraan porsi (gram)** per item, **bounding box overlay** presisi di gambar, dan **kandungan gizi item & total**.
+* **Unduh JSON & CSV**.
+* **Zero hardcode key** (env vars), CI-safe, dan **tanpa error**.
+
+> Catatan keamanan: gunakan *environment variables*—jangan pernah menaruh key di client/browser.
+
+---
+
+# PROMPT — “Kids -B-Care: Food Composition, Camera & Nutrition (Replit → Vercel)”
+
+**Peran:** Principal Full-Stack (Next.js + Python serverless, Vercel-ready).
+**Goal:** Buat satu repo terstruktur yang:
+
+1. Frontend **Next.js (TypeScript, App Router)** + **Tailwind + shadcn/ui** (responsif, mobile-first).
+2. Backend **Python serverless functions** (Vercel `api/*.py`) untuk panggil **Sumopod**.
+3. **Dua jalur model**:
+
+   * **Gambar upload → `gemini-2.0-flash`** (lebih kuat multimodal).
+   * **Webcam/camera → `gpt-5-nano`** (ringan & cepat).
+4. **Komposisi multi-item** + **overlay bounding boxes** akurat di atas foto.
+5. **Hitung gizi per item & total** (makro & mikro), tampilkan jelas, bisa diunduh.
+6. **Siap deploy ke Vercel** (konfigurasi `vercel.json`, env, build).
+
+---
+
+## 1) Arsitektur & Struktur Folder
+
+Gunakan struktur berikut (wajib):
+
+```
+app/                      # Next.js (App Router)
+  layout.tsx
+  page.tsx                # beranda: tab "Camera" & "Upload"
+  results/page.tsx        # halaman hasil (opsional, atau SSR di root)
+  components/
+    camera-panel.tsx      # getUserMedia preview + capture → dataURL
+    upload-panel.tsx      # drag&drop/upload → preview
+    overlay-canvas.tsx    # render overlay bbox yang presisi
+    nutrition-tables.tsx  # tabel makro/mikro per item & total
+    downloads.tsx         # tombol Download JSON/CSV
+    alerts.tsx            # error/success toasts
+  lib/
+    schema.ts             # Zod schemas (composition + nutrition)
+    csv.ts                # flatten JSON → CSV
+    image.ts              # util scaling bbox → canvas (presisi)
+public/
+  logo.svg                # logo “Kids -B-Care”
+  favicon.ico
+  app-icon-192.png
+  app-icon-512.png
+api/
+  analyze_image.py        # serverless (Python) → Sumopod gemini-2.0-flash
+  analyze_camera.py       # serverless (Python) → Sumopod gpt-5-nano
+requirements.txt          # deps Python serverless
+vercel.json               # routes & python runtime
+README.md
+```
+
+---
+
+## 2) Environment Variables (Replit & Vercel)
+
+Simpan **kedua key** sebagai env vars (nama dibedakan agar tidak bentrok):
+
+```
+SUMOPOD_GEMINI_API_KEY=sk-ty8jXpbQPtzqySh31TDZpw
+SUMOPOD_GPT5_API_KEY=sk-SvdF_BcZiqdxni4RugpZgQ
+```
+
+* **Replit:** set di *Secrets*.
+* **Vercel:** Project → Settings → Environment Variables (Development/Preview/Production).
+* **JANGAN** expose key ke client. Semua request ke Sumopod dilakukan **server-side (Python)**.
+
+---
+
+## 3) Kontrak JSON (HARUS Strict, untuk komposisi + gizi)
+
+**Wajib instruksikan model** untuk membalas **HANYA JSON murni** (tanpa markdown/teks tambahan), sesuai skema:
+
+```json
+{
+  "image_meta": {
+    "width": number,
+    "height": number,
+    "orientation": "portrait" | "landscape" | "square"
+  },
+  "composition": [
+    {
+      "label": "string",               // contoh: "nasi goreng"
+      "confidence": number,            // 0..1
+      "serving_est_g": number,         // estimasi gram untuk item ini
+      "bbox_norm": {                   // bounding box ternormalisasi (0..1)
+        "x": number, "y": number, "w": number, "h": number
+      },
+      "nutrition": {
+        "calories_kcal": number,
+        "macros": {
+          "protein_g": number,
+          "carbs_g": number,
+          "fat_g": number,
+          "fiber_g": number,
+          "sugar_g": number
+        },
+        "micros": {
+          "sodium_mg": number,
+          "potassium_mg": number,
+          "calcium_mg": number,
+          "iron_mg": number,
+          "vitamin_a_mcg": number,
+          "vitamin_c_mg": number,
+          "cholesterol_mg": number
+        },
+        "allergens": ["string"]
+      }
+    }
+  ],
+  "totals": {
+    "serving_total_g": number,
+    "calories_kcal": number,
+    "macros": {
+      "protein_g": number,
+      "carbs_g": number,
+      "fat_g": number,
+      "fiber_g": number,
+      "sugar_g": number
+    },
+    "micros": {
+      "sodium_mg": number,
+      "potassium_mg": number,
+      "calcium_mg": number,
+      "iron_mg": number,
+      "vitamin_a_mcg": number,
+      "vitamin_c_mg": number,
+      "cholesterol_mg": number
+    },
+    "allergens": ["string"]
+  },
+  "notes": "string"
+}
+```
+
+**Kewajiban model** (kedua model!):
+
+* Kembalikan minimal 1 item pada `composition`.
+* Estimasi **serving_est_g** per item, **bbox_norm** akurat (0–1, relatif ke gambar sumber).
+* `totals` = penjumlahan seluruh item (serving & nutrisi).
+* **Tidak ada field di luar skema. Tidak ada markdown.**
+
+---
+
+## 4) Panggilan Sumopod — Parameter & Pesan
+
+**Endpoint**: `POST https://ai.sumopod.com/v1/chat/completions`
+**Headers**: `Content-Type: application/json`, `Authorization: Bearer <ENV_KEY>`
+**Params umum**: `"temperature": 0.2–0.3`, `"max_tokens": 1200`, `"model": <lihat di bawah>`
+
+### A. **Upload Gambar → `gemini-2.0-flash`**
+
+* Gunakan **`SUMOPOD_GEMINI_API_KEY`**.
+* `messages`:
+
+  * `system`:
+
+    > You are a pediatric nutrition and food composition expert. Respond with STRICT JSON only per the provided schema. No extra text.
+  * `user.content` (array multimodal):
+
+    1. `{ "type": "text", "text": "Analyze this image. Identify each distinct food item (e.g., nasi goreng, kerupuk, sayur, telur, sosis). For each item, estimate serving_est_g and provide nutrition fields. Provide composition bounding boxes as normalized bbox (x,y,w,h) in [0..1]. Sum all items into totals. Reply strictly with JSON schema only." }`
+    2. `{ "type": "image_url", "image_url": { "url": "data:<mime>;base64,<...>" } }`
+
+### B. **Webcam/Camera → `gpt-5-nano`**
+
+* Gunakan **`SUMOPOD_GPT5_API_KEY`**.
+* `messages` identik dengan di atas (multimodal), hanya **model berbeda**.
+* Fokuskan pada **latensi rendah** (tetap STRICT JSON + komposisi multi-item).
+
+**Parsing**: asumsikan format OpenAI-like → ambil `choices[0].message.content`. Jika ada teks non-JSON, **ekstrak objek `{...}` terluar** lalu parse (kedua fungsi serverless wajib punya fallback ini).
+
+---
+
+## 5) Overlay Presisi (Fix #1 & #2)
+
+**Wajib**: Overlay **selalu tepat** posisi item.
+
+* Render gambar pada `<canvas>` dengan menjaga **aspect ratio**.
+* Jika gambar asli `Wn × Hn` dan kanvas tampilan `Wd × Hd`, hitung:
+
+  * `scale = min(Wd/Wn, Hd/Hn)`
+  * `drawW = Wn * scale`, `drawH = Hn * scale`
+  * `offsetX = (Wd - drawW) / 2`, `offsetY = (Hd - drawH) / 2`
+* Konversi bbox ternormalisasi → piksel tampilan:
+
+  * `x_px = offsetX + bbox.x * drawW`
+  * `y_px = offsetY + bbox.y * drawH`
+  * `w_px = bbox.w * drawW`
+  * `h_px = bbox.h * drawH`
+* **Tambahkan overlay**:
+
+  * **Bounding box** (stroke tegas, rounded),
+  * **Label chip** (nama + confidence + perkiraan gram),
+  * **Heat overlay** tipis (rgba) untuk area item (aksesibel, tidak menutupi).
+* Pastikan **EXIF orientation** diperbaiki di client (rotate sebelum kirim/preview) agar bbox tidak bergeser.
+
+---
+
+## 6) Akurasi Komposisi & Gizi (Fix #3 & #4)
+
+* **Instruksikan model** untuk **mengidentifikasi semua item yang relevan** dalam frame (multi-item).
+* Minta model memberikan **serving_est_g** tiap item (gunakan konteks proporsi visual).
+* **Konsistensi totals**: `totals = Σ item`. Validasi di server:
+
+  * Jika divergen >5%, sesuaikan totals (re-compute) dan beri catatan di `notes`.
+* Tampilkan:
+
+  * **Tabel per item** (nama, gram, kalori, makro, mikro, alergen),
+  * **Ringkasan total** (kalori & makro/mikro total),
+  * **Badge alergi** gabungan (unik),
+  * **Notes** (ketidakpastian/estimasi).
+* Bila `confidence < 0.4`, tandai item “low confidence” (ikon ⚠️) dan sarankan retake foto yang lebih jelas.
+
+---
+
+## 7) UI/UX (Responsif & Nyaman)
+
+* **Branding**: judul **“Kids -B-Care”** + **logo SVG** (lihat Bagian 10).
+* **Tab**: “Camera” (webcam) & “Upload”.
+* **Camera panel**:
+
+  * getUserMedia (`facingMode: "environment"` bila ada),
+  * daftar **deviceId** untuk switch kamera,
+  * tombol **Capture**, preview, ulangi.
+* **Upload panel**:
+
+  * drag&drop, validasi tipe/ukuran (≤ 8MB),
+  * preview besar.
+* **Hasil**:
+
+  * Hero card: **Total kalori** + serving total,
+  * grid 2 kolom di desktop (1 kolom di mobile):
+
+    * kiri: **canvas + overlay**,
+    * kanan: **tabel item** & **tabel total**,
+  * tombol **Download JSON** & **Download CSV**.
+* **Aksesibilitas**: kontras memadai, label ARIA, keyboard-friendly.
+
+---
+
+## 8) Serverless Python (Vercel) — Implementasi
+
+* **`api/analyze_image.py`**: terima `{ dataURL }` → panggil **`gemini-2.0-flash`** via `SUMOPOD_GEMINI_API_KEY`.
+* **`api/analyze_camera.py`**: terima `{ dataURL }` → panggil **`gpt-5-nano`** via `SUMOPOD_GPT5_API_KEY`.
+* Keduanya:
+
+  * terapkan **regex outer JSON extraction**,
+  * validasi skema (gunakan Pydantic atau validasi manual) → jika invalid, kembalikan 400 JSON error,
+  * **return JSON** final (strict).
+* **`requirements.txt`** minimal: `requests`, `pydantic`.
+
+---
+
+## 9) Tipe, Validasi & Ekspor
+
+* **Zod** di frontend untuk tipe kuat (schema yang sama).
+* **CSV**:
+
+  * flatten setiap item: `item_<i>_label`, `item_<i>_serving_est_g`, `item_<i>_macro_protein_g`, …
+  * sertakan **total** sebagai baris/kolom terpisah.
+* **JSON**: simpan payload mentah (setelah validasi).
+* **Error handling**: toast ramah manusia (ID).
+
+---
+
+## 10) Logo “Kids -B-Care”
+
+Buat **logo vektor (SVG)** + `favicon.ico` + `app-icon-192/512`:
+
+* **Ikon**: perisai lembut + huruf **B** membentuk hati/sudu-garpu.
+* **Palet**: baby-blue `#4EA8DE`, green `#7CD992`, slate `#334155`, putih.
+* **Wordmark**: “Kids -B-Care” (sans-serif modern, semi-bold).
+* Tempel di header & `<link rel="icon">`.
+
+---
+
+## 11) Konfigurasi Deploy Vercel
+
+* **`vercel.json`**:
+
+  * route `api/*.py` → Python runtime `python3.11`.
+  * Next.js default build untuk `app/`.
+* **Build**:
+
+  * frontend: Next build,
+  * serverless: install `requirements.txt` otomatis oleh Vercel.
+* **Env**: set `SUMOPOD_GEMINI_API_KEY`, `SUMOPOD_GPT5_API_KEY`.
+* **CORS**: tidak perlu jika panggilan via relative path (`/api/analyze_image`, `/api/analyze_camera`).
+
+---
+
+## 12) Acceptance Criteria (harus lulus)
+
+* ✅ **Camera panel** berfungsi (preview, capture, switch kamera, capture → dataURL).
+* ✅ **Upload panel** berfungsi (preview, validasi).
+* ✅ **Kedua jalur** model bekerja:
+
+  * Upload → **`gemini-2.0-flash`** (key GEMINI),
+  * Camera → **`gpt-5-nano`** (key GPT-5).
+* ✅ JSON **STRICT** sesuai skema (komposisi + gizi per item & total).
+* ✅ **Overlay** presisi (bbox cocok area item, tidak meleset), dengan **overlay shading** & label yang benar.
+* ✅ **Komposisi detail** (nasi goreng, kerupuk, sayur, telur, sosis, dll) **+ gizi** tiap item & total.
+* ✅ **Unduh JSON & CSV** tersedia dan benar.
+* ✅ **Tidak ada error** di console (client/server), **key aman** di server.
+* ✅ Siap **deploy di Vercel** tanpa perubahan.
+
+---
+
+## 13) Petunjuk Tambahan Kualitas
+
+* Perbaiki **EXIF orientation** sebelum overlay.
+* Terapkan **confidence threshold** (mis. <0.4 = low).
+* Batasi **jumlah item** masuk akal (mis. max 8 item) agar UI tetap bersih.
+* Tambahkan **disclaimer edukasi** (bukan nasihat medis).
+* Pastikan **loading state** dan **retry** nyaman.
+
+> **PENTING:** Implementasikan SEMUA spesifikasi di atas **tanpa menempelkan kode** dalam prompt ini. Generator harus menghasilkan proyek lengkap, rapi, dan siap deploy di Vercel sesuai arsitektur, dengan hasil akhir **akurat, presisi overlay-nya, komposisi detail, dan tanpa error**.
