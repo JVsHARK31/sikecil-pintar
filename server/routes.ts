@@ -71,45 +71,57 @@ Return JSON in this exact format:
 }`;
 
 async function callSumopodAPI(apiKey: string, model: string, dataURL: string): Promise<any> {
+  const requestBody = {
+    model,
+    temperature: 0.2,
+    max_tokens: 1200,
+    messages: [
+      {
+        role: 'system',
+        content: SYSTEM_PROMPT,
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Analyze this image. Identify each distinct food item (e.g., nasi goreng, kerupuk, sayur, telur, sosis). For each item, estimate serving_est_g and provide nutrition fields. Provide composition bounding boxes as normalized bbox (x,y,w,h) in [0..1]. Sum all items into totals. Reply strictly with JSON schema only.',
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: dataURL,
+            },
+          },
+        ],
+      },
+    ],
+  };
+
+  console.log('Calling Sumopod API with model:', model);
+  console.log('Request body keys:', Object.keys(requestBody));
+  console.log('Image data URL prefix:', dataURL.substring(0, 50));
+
   const response = await fetch(SUMOPOD_BASE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      max_tokens: 1200,
-      messages: [
-        {
-          role: 'system',
-          content: SYSTEM_PROMPT,
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Analyze this image. Identify each distinct food item (e.g., nasi goreng, kerupuk, sayur, telur, sosis). For each item, estimate serving_est_g and provide nutrition fields. Provide composition bounding boxes as normalized bbox (x,y,w,h) in [0..1]. Sum all items into totals. Reply strictly with JSON schema only.',
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: dataURL,
-              },
-            },
-          ],
-        },
-      ],
-    }),
+    body: JSON.stringify(requestBody),
   });
 
+  console.log('Sumopod API response status:', response.status);
+  console.log('Sumopod API response headers:', Object.fromEntries(response.headers.entries()));
+
   if (!response.ok) {
-    throw new Error(`Sumopod API error: ${response.status} ${response.statusText}`);
+    const errorText = await response.text();
+    console.error('Sumopod API error response body:', errorText);
+    throw new Error(`Sumopod API error: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
   const data = await response.json();
+  console.log('Sumopod API response keys:', Object.keys(data));
   return data.choices[0]?.message?.content || '';
 }
 
@@ -132,6 +144,35 @@ function extractJSON(text: string): object {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Check available models for debugging
+  app.get("/api/models", async (req, res) => {
+    try {
+      const geminiKey = process.env.SUMOPOD_GEMINI_API_KEY;
+      const gptKey = process.env.SUMOPOD_GPT5_API_KEY;
+      
+      if (!geminiKey || !gptKey) {
+        return res.status(500).json({ message: "API keys not configured" });
+      }
+
+      const [geminiModels, gptModels] = await Promise.all([
+        fetch("https://ai.sumopod.com/v1/models", {
+          headers: { "Authorization": `Bearer ${geminiKey}` }
+        }).then(r => r.json()),
+        fetch("https://ai.sumopod.com/v1/models", {
+          headers: { "Authorization": `Bearer ${gptKey}` }
+        }).then(r => r.json())
+      ]);
+
+      res.json({
+        gemini_key_models: geminiModels,
+        gpt_key_models: gptModels
+      });
+    } catch (error) {
+      console.error('Models check error:', error);
+      res.status(500).json({ message: "Failed to check models" });
+    }
+  });
+
   // Image upload analysis using GEMINI
   app.post("/api/analyze-image", async (req, res) => {
     try {
@@ -144,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const rawResponse = await callSumopodAPI(apiKey, "gemini-2.0-flash", dataURL);
+      const rawResponse = await callSumopodAPI(apiKey, "gemini/gemini-2.0-flash", dataURL);
       const jsonData = extractJSON(rawResponse);
       
       // Validate response against schema
