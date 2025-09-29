@@ -97,7 +97,20 @@ export function NutritionTables({ analysis }: NutritionTablesProps) {
       <div className="space-y-3">
         <h3 className="font-semibold">Individual Items</h3>
         
-        {composition.map((item, index) => {
+        {composition.length === 0 ? (
+          <Card className="border-dashed border-muted-foreground/30">
+            <CardContent className="pt-6 pb-6 text-center">
+              <div className="text-muted-foreground space-y-2">
+                <div className="text-lg">🍽️</div>
+                <div className="font-medium">No food items detected</div>
+                <div className="text-sm">
+                  Try uploading a clearer image with visible food items, or ensure the image contains recognizable foods.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          composition.map((item, index) => {
           const confidenceBadge = getConfidenceBadge(item.confidence);
           
           return (
@@ -169,7 +182,7 @@ export function NutritionTables({ analysis }: NutritionTablesProps) {
               </CardContent>
             </Card>
           );
-        })}
+        }))}
       </div>
 
       {/* Allergens Warning */}

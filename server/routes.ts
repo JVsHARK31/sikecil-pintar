@@ -130,16 +130,23 @@ function extractJSON(text: string): object {
     // Try parsing directly first
     return JSON.parse(text);
   } catch {
-    // Extract JSON object using regex
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        return JSON.parse(jsonMatch[0]);
-      } catch {
-        throw new Error('Invalid JSON in response');
+    // Remove code fences if present
+    const cleanedText = text.replace(/```json\s*|\s*```/g, '').trim();
+    
+    try {
+      return JSON.parse(cleanedText);
+    } catch {
+      // Extract JSON object using regex as fallback
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch {
+          throw new Error('Invalid JSON in response');
+        }
       }
+      throw new Error('No JSON found in response');
     }
-    throw new Error('No JSON found in response');
   }
 }
 
