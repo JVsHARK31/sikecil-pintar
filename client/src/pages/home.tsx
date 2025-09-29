@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, Upload, History, LogOut, Save, User } from "lucide-react";
+import { Camera, Upload, History, LogOut, Save, User, Target } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CameraPanel } from "@/components/camera-panel";
 import { UploadPanel } from "@/components/upload-panel";
@@ -11,6 +11,7 @@ import { NutritionTables } from "@/components/nutrition-tables";
 import { Downloads } from "@/components/downloads";
 import { EducationalDisclaimer, LoadingOverlay } from "@/components/alerts";
 import { MealHistory } from "@/pages/meal-history";
+import { NutritionGoalsPage } from "@/pages/nutrition-goals";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
@@ -21,13 +22,10 @@ export default function Home() {
   const [analysisResult, setAnalysisResult] = useState<NutritionAnalysis | null>(null);
   const [analyzedImageUrl, setAnalyzedImageUrl] = useState<string>("");
   const [showMealHistory, setShowMealHistory] = useState(false);
+  const [showNutritionGoals, setShowNutritionGoals] = useState(false);
   const { toast } = useToast();
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
-
-  if (showMealHistory) {
-    return <MealHistory onBack={() => setShowMealHistory(false)} />;
-  }
 
   const cameraMutation = useMutation({
     mutationFn: async (dataURL: string) => {
@@ -114,6 +112,15 @@ export default function Home() {
     uploadMutation.mutate(dataURL);
   };
 
+  // Handle navigation to other pages after all hooks are defined
+  if (showMealHistory) {
+    return <MealHistory onBack={() => setShowMealHistory(false)} />;
+  }
+
+  if (showNutritionGoals) {
+    return <NutritionGoalsPage onBack={() => setShowNutritionGoals(false)} />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -138,12 +145,22 @@ export default function Home() {
             <div className="flex items-center space-x-4">
               <Button
                 variant="outline"
+                onClick={() => setShowNutritionGoals(true)}
+                className="flex items-center space-x-2"
+                data-testid="button-nutrition-goals"
+              >
+                <Target className="h-4 w-4" />
+                <span>Goals</span>
+              </Button>
+              
+              <Button
+                variant="outline"
                 onClick={() => setShowMealHistory(true)}
                 className="flex items-center space-x-2"
                 data-testid="button-meal-history"
               >
                 <History className="h-4 w-4" />
-                <span>Meal History</span>
+                <span>History</span>
               </Button>
               
               <div className="flex items-center space-x-2 text-sm">
