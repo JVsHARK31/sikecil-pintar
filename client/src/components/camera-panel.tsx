@@ -220,11 +220,13 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
                     <SelectValue placeholder="Select camera" />
                   </SelectTrigger>
                   <SelectContent>
-                    {devices.map((device) => (
-                      <SelectItem key={device.deviceId} value={device.deviceId}>
-                        {device.label || `Camera ${device.deviceId.slice(0, 8)}`}
-                      </SelectItem>
-                    ))}
+                    {devices
+                      .filter(device => device.deviceId && device.deviceId.trim() !== '')
+                      .map((device, index) => (
+                        <SelectItem key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Camera ${index + 1}`}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
