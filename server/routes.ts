@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
-import { AnalysisRequestSchema, NutritionAnalysisSchema } from "@shared/schema";
+import { AnalysisRequestSchema, NutritionAnalysisSchema, insertUserSchema, insertMealSchema, insertNutritionGoalsSchema } from "@shared/schema";
+import { storage } from "./storage";
 
 const SUMOPOD_BASE_URL = "https://ai.sumopod.com/v1/chat/completions";
 
@@ -234,6 +235,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ 
         message: error instanceof Error ? error.message : "Analysis failed" 
       });
+    }
+  });
+
+  // Authentication routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+      
+      const user = await storage.createUser(userData);
+      res.status(201).json({ 
+        user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName },
+        message: "User created successfully" 
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Registration failed" 
+      });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password required" });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      const isValidPassword = await storage.verifyPassword(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      res.json({ 
+        user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName },
+        message: "Login successful" 
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Meal tracking routes
+  app.post("/api/meals", async (req, res) => {
+    try {
+      const mealData = insertMealSchema.parse(req.body);
+      const meal = await storage.saveMeal(mealData);
+      res.status(201).json(meal);
+    } catch (error) {
+      console.error('Save meal error:', error);
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Failed to save meal" 
+      });
+    }
+  });
+
+  app.get("/api/meals/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const meals = await storage.getUserMeals(userId, limit);
+      res.json(meals);
+    } catch (error) {
+      console.error('Get meals error:', error);
+      res.status(500).json({ message: "Failed to get meals" });
+    }
+  });
+
+  app.get("/api/meals/:userId/range", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { startDate, endDate } = req.query;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: "Start date and end date required" });
+      }
+      
+      const meals = await storage.getMealsByDateRange(
+        userId, 
+        new Date(startDate as string), 
+        new Date(endDate as string)
+      );
+      res.json(meals);
+    } catch (error) {
+      console.error('Get meals by date range error:', error);
+      res.status(500).json({ message: "Failed to get meals" });
+    }
+  });
+
+  app.delete("/api/meals/:mealId/:userId", async (req, res) => {
+    try {
+      const mealId = parseInt(req.params.mealId);
+      const userId = parseInt(req.params.userId);
+      const success = await storage.deleteMeal(mealId, userId);
+      
+      if (success) {
+        res.json({ message: "Meal deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Meal not found" });
+      }
+    } catch (error) {
+      console.error('Delete meal error:', error);
+      res.status(500).json({ message: "Failed to delete meal" });
+    }
+  });
+
+  // Nutrition goals routes
+  app.post("/api/nutrition-goals", async (req, res) => {
+    try {
+      const goalsData = insertNutritionGoalsSchema.parse(req.body);
+      const goals = await storage.setNutritionGoals(goalsData);
+      res.status(201).json(goals);
+    } catch (error) {
+      console.error('Set nutrition goals error:', error);
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Failed to set nutrition goals" 
+      });
+    }
+  });
+
+  app.get("/api/nutrition-goals/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const goals = await storage.getUserNutritionGoals(userId);
+      
+      if (goals) {
+        res.json(goals);
+      } else {
+        res.status(404).json({ message: "No nutrition goals found" });
+      }
+    } catch (error) {
+      console.error('Get nutrition goals error:', error);
+      res.status(500).json({ message: "Failed to get nutrition goals" });
+    }
+  });
+
+  app.put("/api/nutrition-goals/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const goalsUpdate = req.body;
+      const goals = await storage.updateNutritionGoals(userId, goalsUpdate);
+      
+      if (goals) {
+        res.json(goals);
+      } else {
+        res.status(404).json({ message: "No nutrition goals found to update" });
+      }
+    } catch (error) {
+      console.error('Update nutrition goals error:', error);
+      res.status(500).json({ message: "Failed to update nutrition goals" });
     }
   });
 

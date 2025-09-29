@@ -1,23 +1,33 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Camera, Upload } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Camera, Upload, History, LogOut, Save, User } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CameraPanel } from "@/components/camera-panel";
 import { UploadPanel } from "@/components/upload-panel";
 import { OverlayCanvas } from "@/components/overlay-canvas";
 import { NutritionTables } from "@/components/nutrition-tables";
 import { Downloads } from "@/components/downloads";
 import { EducationalDisclaimer, LoadingOverlay } from "@/components/alerts";
+import { MealHistory } from "@/pages/meal-history";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 import type { NutritionAnalysis } from "@shared/schema";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("camera");
   const [analysisResult, setAnalysisResult] = useState<NutritionAnalysis | null>(null);
   const [analyzedImageUrl, setAnalyzedImageUrl] = useState<string>("");
+  const [showMealHistory, setShowMealHistory] = useState(false);
   const { toast } = useToast();
+  const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
+
+  if (showMealHistory) {
+    return <MealHistory onBack={() => setShowMealHistory(false)} />;
+  }
 
   const cameraMutation = useMutation({
     mutationFn: async (dataURL: string) => {
@@ -63,6 +73,37 @@ export default function Home() {
     },
   });
 
+  const saveMealMutation = useMutation({
+    mutationFn: async (mealData: { 
+      mealType: string; 
+      name?: string; 
+      notes?: string; 
+      analysisData: NutritionAnalysis; 
+      imageUrl?: string; 
+    }) => {
+      if (!user) throw new Error('User not authenticated');
+      const response = await apiRequest("POST", "/api/meals", {
+        userId: user.id,
+        ...mealData,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/meals'] });
+      toast({
+        title: "Meal saved!",
+        description: "Your meal has been added to your history.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Save failed",
+        description: error.message || "Failed to save meal",
+      });
+    },
+  });
+
   const isAnalyzing = cameraMutation.isPending || uploadMutation.isPending;
 
   const handleCameraCapture = (dataURL: string) => {
@@ -93,12 +134,34 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Status Indicator */}
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-                <span>Ready</span>
+            {/* User Actions */}
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowMealHistory(true)}
+                className="flex items-center space-x-2"
+                data-testid="button-meal-history"
+              >
+                <History className="h-4 w-4" />
+                <span>Meal History</span>
+              </Button>
+              
+              <div className="flex items-center space-x-2 text-sm">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
+                  {user?.fullName || user?.username}
+                </span>
               </div>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                className="text-muted-foreground hover:text-foreground"
+                data-testid="button-logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -205,7 +268,27 @@ export default function Home() {
                   <CardTitle>Analysis Results</CardTitle>
                   <p className="text-muted-foreground">Detected food items and nutritional breakdown</p>
                 </div>
-                <Downloads analysis={analysisResult} />
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const mealType = new Date().getHours() < 11 ? 'breakfast' : 
+                                     new Date().getHours() < 16 ? 'lunch' : 'dinner';
+                      saveMealMutation.mutate({
+                        mealType,
+                        analysisData: analysisResult,
+                        imageUrl: analyzedImageUrl,
+                      });
+                    }}
+                    disabled={saveMealMutation.isPending}
+                    className="flex items-center space-x-2"
+                    data-testid="button-save-meal"
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>Save as Meal</span>
+                  </Button>
+                  <Downloads analysis={analysisResult} />
+                </div>
               </div>
             </CardHeader>
             
