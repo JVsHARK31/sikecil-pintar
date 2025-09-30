@@ -75,7 +75,7 @@ async function callSumopodAPI(apiKey: string, model: string, dataURL: string): P
   const requestBody = {
     model,
     temperature: 0.2,
-    max_tokens: 1200,
+    max_tokens: 4000,
     messages: [
       {
         role: 'system',
@@ -131,21 +131,29 @@ function extractJSON(text: string): object {
     // Try parsing directly first
     return JSON.parse(text);
   } catch {
-    // Remove code fences if present
-    const cleanedText = text.replace(/```json\s*|\s*```/g, '').trim();
+    // Remove markdown code fences if present
+    let cleanedText = text.replace(/```json\s*/g, '').replace(/\s*```$/g, '').trim();
     
     try {
       return JSON.parse(cleanedText);
     } catch {
-      // Extract JSON object using regex as fallback
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
+      // Extract JSON object using regex - find first { to last }
+      const firstBrace = cleanedText.indexOf('{');
+      const lastBrace = cleanedText.lastIndexOf('}');
+      
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        const jsonStr = cleanedText.substring(firstBrace, lastBrace + 1);
         try {
-          return JSON.parse(jsonMatch[0]);
-        } catch {
-          throw new Error('Invalid JSON in response');
+          return JSON.parse(jsonStr);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          console.error('Attempted to parse:', jsonStr.substring(0, 200));
+          throw new Error('Invalid JSON in response - response may be truncated');
         }
       }
+      
+      console.error('No valid JSON structure found in response');
+      console.error('Response text:', text.substring(0, 500));
       throw new Error('No JSON found in response');
     }
   }
