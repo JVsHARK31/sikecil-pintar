@@ -310,12 +310,6 @@ export default function Home() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span>Analysis Model:</span>
-                          <span className="font-medium">
-                            {activeTab === 'camera' ? 'GPT-5 Nano' : 'GEMINI 2.0 Flash'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
                           <span>Image Size:</span>
                           <span className="font-medium">
                             {analysisResult.image_meta.width} × {analysisResult.image_meta.height}
