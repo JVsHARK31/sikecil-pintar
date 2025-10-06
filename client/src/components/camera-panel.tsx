@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Camera, RotateCcw, Play, Square, SwitchCamera, Video } from "lucide-react";
+import { Camera, RotateCcw, Play, Square, SwitchCamera, Video, X } from "lucide-react";
 import { resizeImageIfNeeded } from "@/lib/image";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,9 +13,8 @@ interface CameraPanelProps {
 
 export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
   const [isStreaming, setIsStreaming] = useState(false);
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
   const { toast } = useToast();
   
@@ -25,26 +23,6 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    // Get available camera devices
-    navigator.mediaDevices.enumerateDevices()
-      .then(devices => {
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        setDevices(videoDevices);
-        if (videoDevices.length > 0 && !selectedDeviceId) {
-          // Prefer back camera on mobile
-          const backCamera = videoDevices.find(device => 
-            device.label.toLowerCase().includes('back') ||
-            device.label.toLowerCase().includes('rear') ||
-            device.label.toLowerCase().includes('environment')
-          );
-          setSelectedDeviceId(backCamera?.deviceId || videoDevices[0].deviceId);
-        }
-      })
-      .catch(err => {
-        console.error('Error enumerating devices:', err);
-        setError('Tidak dapat mengakses perangkat kamera');
-      });
-
     return () => {
       stopStream();
     };
@@ -53,13 +31,13 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
   const startStream = async () => {
     try {
       setError("");
+      setCapturedImage(null);
       
       const constraints: MediaStreamConstraints = {
         video: {
-          deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
-          facingMode: selectedDeviceId ? undefined : { ideal: facingMode },
-          width: { ideal: 1920, max: 1920 },
-          height: { ideal: 1080, max: 1080 },
+          facingMode: { ideal: facingMode },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
         },
         audio: false
       };
@@ -70,31 +48,27 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         
-        // Wait for video metadata to load
-        await new Promise<void>((resolve) => {
+        // Ensure video plays
+        videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
-            videoRef.current.onloadedmetadata = () => {
-              videoRef.current?.play()
-                .then(() => {
-                  setIsStreaming(true);
-                  toast({
-                    title: "Kamera Aktif",
-                    description: facingMode === "environment" ? "Kamera belakang digunakan" : "Kamera depan digunakan",
-                  });
-                  resolve();
-                })
-                .catch((err) => {
-                  console.error('Error playing video:', err);
-                  setError('Gagal memutar video preview');
-                  resolve();
+            videoRef.current.play()
+              .then(() => {
+                setIsStreaming(true);
+                toast({
+                  title: "Kamera Aktif",
+                  description: facingMode === "environment" ? "Menggunakan kamera belakang" : "Menggunakan kamera depan",
                 });
-            };
+              })
+              .catch((err) => {
+                console.error('Error playing video:', err);
+                setError('Gagal memutar video preview');
+              });
           }
-        });
+        };
       }
     } catch (err) {
       console.error('Error starting camera:', err);
-      setError('Tidak dapat mengakses kamera. Periksa izin kamera.');
+      setError('Tidak dapat mengakses kamera. Pastikan Anda telah memberikan izin akses kamera.');
       toast({
         variant: "destructive",
         title: "Kamera Gagal",
@@ -108,62 +82,105 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setIsStreaming(false);
   };
 
-  const captureImage = async () => {
+  const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) return;
 
+    // Set canvas size to video dimensions
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
+    // Draw the current video frame
     ctx.drawImage(video, 0, 0);
     
-    let dataURL = canvas.toDataURL('image/jpeg', 0.7);
+    // Get image as data URL
+    let dataURL = canvas.toDataURL('image/jpeg', 0.85);
     
-    // Resize and compress to match upload limits
+    // Resize if needed
     dataURL = await resizeImageIfNeeded(dataURL, 800);
     
-    // Check compressed size - same as upload path
+    // Check size
     if (dataURL.length > 512 * 1024) {
-      setError('Gambar terlalu besar. Coba dengan pencahayaan lebih baik atau sudut yang berbeda.');
+      toast({
+        variant: "destructive",
+        title: "Gambar Terlalu Besar",
+        description: "Coba dengan pencahayaan lebih baik",
+      });
       return;
     }
     
-    onCapture(dataURL);
-  };
-
-  const switchCamera = async () => {
-    // Toggle between front and back camera
-    const newFacingMode = facingMode === "environment" ? "user" : "environment";
-    setFacingMode(newFacingMode);
+    // Set captured image for preview
+    setCapturedImage(dataURL);
     
-    // Restart stream with new facing mode
-    if (isStreaming) {
-      stopStream();
-      setTimeout(() => {
-        setError("");
-        startStream();
-      }, 100);
-    }
+    // Stop camera stream
+    stopStream();
     
     toast({
-      title: "Beralih Kamera",
-      description: newFacingMode === "environment" ? "Menggunakan kamera belakang" : "Menggunakan kamera depan",
+      title: "Foto Diambil",
+      description: "Klik 'Analisis Gambar' untuk memproses",
     });
   };
 
-  // Restart stream when device changes
-  useEffect(() => {
-    if (isStreaming && selectedDeviceId) {
-      stopStream();
-      setTimeout(startStream, 100);
+  const retakePhoto = () => {
+    setCapturedImage(null);
+    startStream();
+  };
+
+  const analyzeImage = () => {
+    if (capturedImage) {
+      onCapture(capturedImage);
     }
-  }, [selectedDeviceId]);
+  };
+
+  const switchCamera = () => {
+    const newFacingMode = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(newFacingMode);
+    
+    if (isStreaming) {
+      stopStream();
+      setTimeout(() => {
+        const constraints: MediaStreamConstraints = {
+          video: {
+            facingMode: { ideal: newFacingMode },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: false
+        };
+        
+        navigator.mediaDevices.getUserMedia(constraints)
+          .then(stream => {
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+              streamRef.current = stream;
+              videoRef.current.play()
+                .then(() => {
+                  setIsStreaming(true);
+                  toast({
+                    title: "Kamera Berubah",
+                    description: newFacingMode === "environment" ? "Menggunakan kamera belakang" : "Menggunakan kamera depan",
+                  });
+                });
+            }
+          })
+          .catch(err => {
+            console.error('Error switching camera:', err);
+            setError('Gagal beralih kamera');
+          });
+      }, 300);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -176,12 +193,12 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
                 <span>Analisis Kamera</span>
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Posisikan makanan dengan jelas di tampilan kamera
+                Ambil foto makanan dengan kamera
               </p>
             </div>
             {isStreaming && (
               <Badge variant="default" className="flex items-center space-x-1">
-                <Video className="w-3 h-3" />
+                <Video className="w-3 h-3 animate-pulse" />
                 <span className="text-xs">
                   {facingMode === "environment" ? "Belakang" : "Depan"}
                 </span>
@@ -191,168 +208,223 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {/* Camera Preview */}
-          <div className="relative aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
-            {error ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-destructive/10">
+          {/* Camera/Image Preview Area */}
+          <div className="relative aspect-video bg-black rounded-lg overflow-hidden shadow-lg border-2 border-border">
+            {/* Error State */}
+            {error && !isStreaming && !capturedImage && (
+              <div className="absolute inset-0 flex items-center justify-center bg-red-500/10">
                 <div className="text-center p-4">
-                  <Camera className="w-12 h-12 text-destructive mx-auto mb-2" />
-                  <p className="text-destructive text-sm">{error}</p>
+                  <Camera className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                  <p className="text-red-500 text-sm mb-3">{error}</p>
                   <Button 
                     onClick={startStream} 
                     variant="outline"
-                    className="mt-3"
                     data-testid="button-retry-camera"
                   >
+                    <Play className="w-4 h-4 mr-2" />
                     Coba Lagi
                   </Button>
                 </div>
               </div>
-            ) : !isStreaming ? (
+            )}
+
+            {/* Initial State - Not Streaming */}
+            {!isStreaming && !capturedImage && !error && (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Camera className="w-8 h-8 text-primary" />
+                <div className="text-center p-4">
+                  <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <Camera className="w-10 h-10 text-primary-foreground" />
                   </div>
-                  <p className="text-foreground text-sm mb-4 px-4">Tekan tombol untuk mulai kamera</p>
+                  <p className="text-foreground font-medium mb-4">Ambil Foto Makanan</p>
                   <Button 
                     onClick={startStream} 
                     size="lg"
                     className="shadow-lg"
                     data-testid="button-start-camera"
                   >
-                    <Play className="w-4 h-4 mr-2" />
+                    <Play className="w-5 h-5 mr-2" />
                     Mulai Kamera
                   </Button>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {/* Video Stream - Camera Active */}
+            {isStreaming && !capturedImage && (
               <>
                 <video
                   ref={videoRef}
                   autoPlay
-                  muted
                   playsInline
+                  muted
                   className="w-full h-full object-cover"
-                  style={{ transform: facingMode === "user" ? "scaleX(-1)" : "none" }}
+                  style={{ 
+                    transform: facingMode === "user" ? "scaleX(-1)" : "none",
+                    display: "block"
+                  }}
                   data-testid="video-camera-preview"
                 />
                 
                 {/* Camera Grid Overlay */}
-                <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute inset-0 pointer-events-none opacity-30">
                   <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                     <defs>
-                      <pattern id="grid" width="33.33" height="33.33" patternUnits="userSpaceOnUse">
-                        <path d="M 33.33 0 L 0 0 0 33.33" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5"/>
+                      <pattern id="camera-grid" width="33.33" height="33.33" patternUnits="userSpaceOnUse">
+                        <path d="M 33.33 0 L 0 0 0 33.33" fill="none" stroke="white" strokeWidth="0.5"/>
                       </pattern>
                     </defs>
-                    <rect width="100" height="100" fill="url(#grid)" />
+                    <rect width="100" height="100" fill="url(#camera-grid)" />
                   </svg>
                 </div>
 
-                {/* Camera Info Top */}
+                {/* Camera Controls Overlay */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 sm:p-6">
+                  <div className="flex items-center justify-center space-x-4">
+                    {/* Stop Camera */}
+                    <Button
+                      onClick={stopStream}
+                      variant="destructive"
+                      size="icon"
+                      className="w-12 h-12 rounded-full shadow-lg"
+                      data-testid="button-stop-camera"
+                    >
+                      <Square className="w-6 h-6" />
+                    </Button>
+                    
+                    {/* Capture Photo */}
+                    <Button
+                      onClick={capturePhoto}
+                      size="icon"
+                      className="w-16 h-16 rounded-full bg-white hover:bg-gray-100 text-primary shadow-xl border-4 border-primary"
+                      data-testid="button-capture-photo"
+                    >
+                      <Camera className="w-8 h-8" />
+                    </Button>
+                    
+                    {/* Switch Camera */}
+                    <Button
+                      onClick={switchCamera}
+                      variant="secondary"
+                      size="icon"
+                      className="w-12 h-12 rounded-full shadow-lg"
+                      data-testid="button-switch-camera"
+                    >
+                      <SwitchCamera className="w-6 h-6" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Top Info Bar */}
                 <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-                  <Badge variant="secondary" className="bg-black/50 text-white border-white/20">
-                    <Video className="w-3 h-3 mr-1" />
-                    {facingMode === "environment" ? "Kamera Belakang" : "Kamera Depan"}
+                  <Badge className="bg-black/50 text-white border-white/30">
+                    <Video className="w-3 h-3 mr-1 animate-pulse" />
+                    Kamera Aktif
                   </Badge>
                   <Button
                     onClick={switchCamera}
-                    variant="secondary"
                     size="sm"
-                    className="bg-black/50 hover:bg-black/70 text-white border-white/20"
-                    data-testid="button-switch-camera"
+                    variant="secondary"
+                    className="bg-black/50 hover:bg-black/70 text-white border-white/30"
                   >
-                    <SwitchCamera className="w-4 h-4 mr-2" />
+                    <RotateCcw className="w-4 h-4 mr-1" />
                     Ganti
                   </Button>
                 </div>
+              </>
+            )}
 
-                {/* Camera Controls Overlay */}
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center space-x-4">
+            {/* Captured Image Preview */}
+            {capturedImage && (
+              <>
+                <img
+                  src={capturedImage}
+                  alt="Captured"
+                  className="w-full h-full object-contain"
+                  data-testid="img-captured-preview"
+                />
+                
+                {/* Retake Button Overlay */}
+                <div className="absolute top-4 right-4">
                   <Button
-                    onClick={stopStream}
-                    variant="destructive"
-                    className="p-3 rounded-full shadow-lg"
-                    data-testid="button-stop-camera"
-                  >
-                    <Square className="w-5 h-5" />
-                  </Button>
-                  
-                  <Button
-                    onClick={captureImage}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground p-4 rounded-full shadow-lg scale-110"
-                    disabled={isAnalyzing}
-                    data-testid="button-capture-image"
-                  >
-                    <Camera className="w-7 h-7" />
-                  </Button>
-                  
-                  <Button
-                    onClick={switchCamera}
+                    onClick={retakePhoto}
                     variant="secondary"
-                    className="p-3 rounded-full shadow-lg bg-white/90 hover:bg-white"
-                    data-testid="button-switch-camera-bottom"
+                    size="sm"
+                    className="shadow-lg"
+                    data-testid="button-retake-photo"
                   >
-                    <RotateCcw className="w-5 h-5" />
+                    <X className="w-4 h-4 mr-1" />
+                    Ambil Ulang
                   </Button>
+                </div>
+
+                {/* Preview Badge */}
+                <div className="absolute top-4 left-4">
+                  <Badge className="bg-green-500 text-white">
+                    <Camera className="w-3 h-3 mr-1" />
+                    Foto Siap
+                  </Badge>
                 </div>
               </>
             )}
           </div>
 
-          {/* Camera Controls */}
+          {/* Hidden canvas for capturing */}
+          <canvas ref={canvasRef} className="hidden" />
+
+          {/* Action Buttons */}
           <div className="space-y-3">
-            {!isStreaming && (
+            {!isStreaming && !capturedImage && !error && (
               <Button
                 onClick={startStream}
-                className="w-full bg-primary hover:bg-primary/90"
+                className="w-full"
                 size="lg"
                 data-testid="button-start-camera-main"
               >
-                <Play className="w-4 h-4 mr-2" />
+                <Play className="w-5 h-5 mr-2" />
                 Mulai Kamera
               </Button>
             )}
-            
-            {isStreaming && (
+
+            {isStreaming && !capturedImage && (
               <Button
-                onClick={captureImage}
-                disabled={isAnalyzing}
-                className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+                onClick={capturePhoto}
+                className="w-full bg-primary hover:bg-primary/90"
                 size="lg"
-                data-testid="button-analyze-camera"
+                data-testid="button-capture-main"
               >
-                {isAnalyzing ? "Menganalisis..." : "Analisis Makanan"}
+                <Camera className="w-5 h-5 mr-2" />
+                Ambil Foto
               </Button>
             )}
 
-            {devices.length > 1 && isStreaming && (
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span className="text-sm font-medium">Pilih Kamera:</span>
-                <Select value={selectedDeviceId} onValueChange={setSelectedDeviceId}>
-                  <SelectTrigger className="w-48" data-testid="select-camera-device">
-                    <SelectValue placeholder="Pilih kamera" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {devices
-                      .filter(device => device.deviceId && device.deviceId.trim() !== '')
-                      .map((device, index) => (
-                        <SelectItem key={device.deviceId} value={device.deviceId}>
-                          {device.label || `Kamera ${index + 1}`}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+            {capturedImage && (
+              <div className="space-y-2">
+                <Button
+                  onClick={analyzeImage}
+                  disabled={isAnalyzing}
+                  className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+                  size="lg"
+                  data-testid="button-analyze-captured"
+                >
+                  {isAnalyzing ? "Menganalisis..." : "Analisis Gambar"}
+                </Button>
+                
+                <Button
+                  onClick={retakePhoto}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                  data-testid="button-retake-main"
+                >
+                  <RotateCcw className="w-5 h-5 mr-2" />
+                  Ambil Foto Ulang
+                </Button>
               </div>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Hidden canvas for image capture */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-      
       {/* Camera Tips */}
       <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
         <CardContent className="pt-6">
@@ -367,7 +439,7 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
             </li>
             <li className="flex items-start">
               <span className="mr-2">📱</span>
-              <span>Pegang kamera dengan stabil untuk hasil yang jelas</span>
+              <span>Pegang kamera dengan stabil saat mengambil foto</span>
             </li>
             <li className="flex items-start">
               <span className="mr-2">🎯</span>
