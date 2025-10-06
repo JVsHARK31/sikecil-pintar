@@ -53,10 +53,30 @@ Preferred communication style: Simple, everyday language.
   - CSV: Spreadsheet format for Excel/Google Sheets analysis
   - TXT: Readable report with summary and detailed breakdowns
   - Period-specific exports (week, month, or all time)
-- **Feature Guide**: Interactive onboarding and help system
-  - Automatically shows on first visit (localStorage-based)
-  - 6 feature pages with step-by-step instructions
-  - Reopen anytime via Help button in header
+- **Interactive Feature Tour**: Professional onboarding system with game-like overlay
+  - **Auto-launch**: Appears automatically on first visit after 1.5s delay
+  - **Spotlight Effect**: Dark backdrop with SVG-based spotlight highlighting specific UI elements
+  - **Smart Positioning**: Adaptive tooltip placement that prevents cropping on mobile/desktop
+  - **7-Step Walkthrough**: 
+    1. Welcome screen with app introduction
+    2. Camera tab highlight and explanation
+    3. Upload tab highlight and explanation
+    4. History button highlight with feature description
+    5. Goals button highlight with feature description
+    6. Analysis area preview
+    7. Completion screen with call-to-action
+  - **Navigation Controls**: Previous/Next buttons, clickable progress dots, Skip button (X icon and "Lewati")
+  - **Responsive Design**: 
+    - Mobile-optimized with full-width cards and proper margins (16px)
+    - Auto-scroll elements into view if off-screen
+    - Smart fallback positioning (e.g., left/right becomes bottom on mobile)
+    - Touch-friendly buttons with icon-only mode on small screens
+  - **Animations**: Framer Motion-powered smooth transitions, pulsing highlight corners
+  - **Persistence**: localStorage-based ("hasSeenFeatureTour") to prevent repeated tours
+  - **Manual Trigger**: Reopen anytime via Help button (HelpCircle icon) in header
+- **Legacy Feature Guide**: Step-by-step modal guide (still accessible)
+  - 6 feature pages with detailed instructions
+  - Card-based presentation with color-coded features
   - Full navigation with progress indicators
 - **Meal History**: Complete meal tracking with localStorage
   - Save analyzed meals with automatic timestamps
