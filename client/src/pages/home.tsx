@@ -279,9 +279,10 @@ export default function Home() {
           </Tabs>
         </div>
 
-        {/* Analysis Results */}
-        {analysisResult && analyzedImageUrl && (
-          <Card className="mt-6 sm:mt-8" data-tour="analyze-area">
+        {/* Analysis Results Area */}
+        <div data-tour="analyze-area" className="mt-6 sm:mt-8 min-h-[200px]">
+        {analysisResult && analyzedImageUrl ? (
+          <Card>
             <CardHeader className="px-4 sm:px-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                 <div>
@@ -353,7 +354,8 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
-        )}
+        ) : null}
+        </div>
 
         {/* Educational Disclaimer */}
         <div className="mt-8">
