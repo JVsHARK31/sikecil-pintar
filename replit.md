@@ -30,10 +30,17 @@ Preferred communication style: Simple, everyday language.
 
 ### Core Features
 - **Dual Input Methods**: Camera capture with device selection and file upload with drag-and-drop
-  - Enhanced camera preview with better mobile visibility (black background, metadata loading)
-  - Front/back camera switching using facingMode (environment/user)
-  - Real-time video preview with grid overlay for composition guidance
-  - Mirror effect for front-facing camera
+  - **Camera Flow**: Multi-state workflow optimized for mobile
+    - Initial state: "Mulai Kamera" button with clear instructions
+    - Streaming state: Live video preview with grid overlay, camera controls, and switch button
+    - Captured state: Image preview with "Analisis Gambar" and "Ambil Ulang" buttons
+    - Analysis state: Results display with save to history option
+  - Enhanced camera preview with mobile-first design (autoplay, playsInline, muted for iOS/Android)
+  - Front/back camera switching using facingMode toggle ("environment" ↔ "user")
+  - Real-time video preview with composition grid overlay and visual indicators
+  - Mirror effect for front-facing camera (scaleX transform)
+  - Robust error handling with retry mechanisms and Indonesian error messages
+  - Touch-friendly controls: large capture button, camera switch, and stop buttons
 - **Food Item Detection**: Multi-item food composition analysis with bounding box overlays
 - **Nutrition Analysis**: Comprehensive nutritional breakdown including:
   - Macronutrients (protein, carbs, fat, fiber, sugar)
@@ -59,14 +66,23 @@ Preferred communication style: Simple, everyday language.
   - Export capabilities in multiple formats
 
 ### UI/UX Design
-- **Mobile-First**: Responsive design optimized for mobile devices
+- **Mobile-First**: Responsive design optimized for mobile devices with professional UX patterns
+  - Camera panel: Large touch targets, clear visual states, smooth transitions
+  - Video preview: Proper aspect ratio handling with object-cover
+  - Capture workflow: Intuitive flow matching upload experience
 - **Indonesian Language**: Complete Indonesian localization for all user-facing text
   - All UI elements, buttons, labels, and notifications in Indonesian
   - Feature guide with step-by-step instructions in Indonesian
   - Toast notifications and error messages in Indonesian
+  - Camera tips and instructions fully translated
 - **Tab Navigation**: Clean interface switching between camera and upload modes
 - **Loading States**: Comprehensive loading overlays and progress indicators
 - **Educational Disclaimers**: Clear messaging about the educational nature of the analysis
+- **Visual Feedback**: Badges, gradients, animations, and status indicators throughout
+  - Active camera badge with pulse animation
+  - Capture ready badge in green
+  - Grid overlay during camera streaming
+  - Toast notifications for all state changes
 
 ## External Dependencies
 
