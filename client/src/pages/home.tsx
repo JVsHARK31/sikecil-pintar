@@ -163,7 +163,7 @@ export default function Home() {
                 data-testid="button-nutrition-goals"
               >
                 <Target className="h-4 w-4" />
-                <span className="hidden sm:inline">Goals</span>
+                <span className="hidden sm:inline">Target</span>
               </Button>
               
               <Button
@@ -174,7 +174,7 @@ export default function Home() {
                 data-testid="button-meal-history"
               >
                 <History className="h-4 w-4" />
-                <span className="hidden sm:inline">History</span>
+                <span className="hidden sm:inline">Riwayat</span>
               </Button>
             </div>
           </div>

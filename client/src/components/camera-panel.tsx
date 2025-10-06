@@ -42,7 +42,7 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
       })
       .catch(err => {
         console.error('Error enumerating devices:', err);
-        setError('Unable to access camera devices');
+        setError('Tidak dapat mengakses perangkat kamera');
       });
 
     return () => {
