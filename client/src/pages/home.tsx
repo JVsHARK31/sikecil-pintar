@@ -193,7 +193,7 @@ export default function Home() {
                 data-testid="tab-camera"
               >
                 <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-sm sm:text-base">Camera</span>
+                <span className="text-sm sm:text-base">Kamera</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="upload" 
@@ -201,7 +201,7 @@ export default function Home() {
                 data-testid="tab-upload"
               >
                 <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-sm sm:text-base">Upload</span>
+                <span className="text-sm sm:text-base">Unggah</span>
               </TabsTrigger>
             </TabsList>
 
@@ -217,7 +217,7 @@ export default function Home() {
                 <div className="space-y-4">
                   <Card>
                     <CardContent className="pt-4 sm:pt-6">
-                      <h3 className="text-base sm:text-lg font-semibold mb-3">Quick Nutrition Preview</h3>
+                      <h3 className="text-base sm:text-lg font-semibold mb-3">Preview Nutrisi Cepat</h3>
                       <div className="grid grid-cols-2 gap-3 sm:gap-4">
                         <div className="text-center p-2 sm:p-3 bg-muted rounded-lg">
                           <div className="text-xl sm:text-2xl font-bold text-primary" data-testid="text-preview-calories">
@@ -229,7 +229,7 @@ export default function Home() {
                           <div className="text-xl sm:text-2xl font-bold text-secondary" data-testid="text-preview-items">
                             {analysisResult?.composition.length || 0}
                           </div>
-                          <div className="text-xs sm:text-sm text-muted-foreground">Items Detected</div>
+                          <div className="text-xs sm:text-sm text-muted-foreground">Item Terdeteksi</div>
                         </div>
                       </div>
                     </CardContent>
@@ -250,7 +250,7 @@ export default function Home() {
                 <div className="space-y-4">
                   <Card>
                     <CardContent className="pt-4 sm:pt-6">
-                      <h3 className="text-base sm:text-lg font-semibold mb-3">Analysis Summary</h3>
+                      <h3 className="text-base sm:text-lg font-semibold mb-3">Ringkasan Analisis</h3>
                       <div className="grid grid-cols-2 gap-3 sm:gap-4">
                         <div className="text-center p-2 sm:p-3 bg-muted rounded-lg">
                           <div className="text-xl sm:text-2xl font-bold text-primary" data-testid="text-summary-calories">
@@ -262,7 +262,7 @@ export default function Home() {
                           <div className="text-xl sm:text-2xl font-bold text-secondary" data-testid="text-summary-items">
                             {analysisResult?.composition.length || 0}
                           </div>
-                          <div className="text-xs sm:text-sm text-muted-foreground">Items Detected</div>
+                          <div className="text-xs sm:text-sm text-muted-foreground">Item Terdeteksi</div>
                         </div>
                       </div>
                     </CardContent>
@@ -279,8 +279,8 @@ export default function Home() {
             <CardHeader className="px-4 sm:px-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                 <div>
-                  <CardTitle className="text-lg sm:text-xl">Analysis Results</CardTitle>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Detected food items and nutritional breakdown</p>
+                  <CardTitle className="text-lg sm:text-xl">Hasil Analisis</CardTitle>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Makanan terdeteksi dan rincian nutrisi</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
@@ -300,8 +300,8 @@ export default function Home() {
                     data-testid="button-save-meal"
                   >
                     <Save className="h-4 w-4" />
-                    <span className="hidden sm:inline">Save as Meal</span>
-                    <span className="sm:hidden">Save</span>
+                    <span className="hidden sm:inline">Simpan Makanan</span>
+                    <span className="sm:hidden">Simpan</span>
                   </Button>
                   <Downloads analysis={analysisResult} />
                 </div>
@@ -323,16 +323,16 @@ export default function Home() {
                   {/* Detection Summary */}
                   <Card className="bg-muted">
                     <CardContent className="pt-3 sm:pt-4">
-                      <h3 className="text-sm sm:text-base font-semibold mb-2 sm:mb-3">Detection Summary</h3>
+                      <h3 className="text-sm sm:text-base font-semibold mb-2 sm:mb-3">Ringkasan Deteksi</h3>
                       <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
                         <div className="flex items-center justify-between">
-                          <span>Items Detected:</span>
+                          <span>Item Terdeteksi:</span>
                           <span className="font-medium" data-testid="text-items-detected">
                             {analysisResult.composition.length}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span>Image Size:</span>
+                          <span>Ukuran Gambar:</span>
                           <span className="font-medium">
                             {analysisResult.image_meta.width} × {analysisResult.image_meta.height}
                           </span>
