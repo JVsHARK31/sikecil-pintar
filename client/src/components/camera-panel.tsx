@@ -42,32 +42,35 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
         audio: false
       };
 
+      console.log('[Camera] Requesting camera with constraints:', constraints);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('[Camera] Got stream:', stream.id);
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         
-        // Ensure video plays
-        videoRef.current.onloadedmetadata = () => {
+        // Wait for metadata and play
+        videoRef.current.onloadedmetadata = async () => {
+          console.log('[Camera] Video metadata loaded');
           if (videoRef.current) {
-            videoRef.current.play()
-              .then(() => {
-                setIsStreaming(true);
-                toast({
-                  title: "Kamera Aktif",
-                  description: facingMode === "environment" ? "Menggunakan kamera belakang" : "Menggunakan kamera depan",
-                });
-              })
-              .catch((err) => {
-                console.error('Error playing video:', err);
-                setError('Gagal memutar video preview');
+            try {
+              await videoRef.current.play();
+              console.log('[Camera] Video playing');
+              setIsStreaming(true);
+              toast({
+                title: "Kamera Aktif",
+                description: facingMode === "environment" ? "Menggunakan kamera belakang" : "Menggunakan kamera depan",
               });
+            } catch (err) {
+              console.error('[Camera] Error playing video:', err);
+              setError('Gagal memutar video preview');
+            }
           }
         };
       }
     } catch (err) {
-      console.error('Error starting camera:', err);
+      console.error('[Camera] Error starting camera:', err);
       setError('Tidak dapat mengakses kamera. Pastikan Anda telah memberikan izin akses kamera.');
       toast({
         variant: "destructive",
@@ -210,9 +213,97 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
         <CardContent className="space-y-4">
           {/* Camera/Image Preview Area */}
           <div className="relative aspect-video bg-black rounded-lg overflow-hidden shadow-lg border-2 border-border">
+            
+            {/* Video Element - Always present in DOM */}
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`absolute inset-0 w-full h-full object-cover ${
+                isStreaming && !capturedImage ? 'block' : 'hidden'
+              }`}
+              style={{ 
+                transform: facingMode === "user" ? "scaleX(-1)" : "none",
+              }}
+              data-testid="video-camera-preview"
+            />
+
+            {/* Camera Grid Overlay */}
+            {isStreaming && !capturedImage && (
+              <div className="absolute inset-0 pointer-events-none opacity-30">
+                <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <defs>
+                    <pattern id="camera-grid" width="33.33" height="33.33" patternUnits="userSpaceOnUse">
+                      <path d="M 33.33 0 L 0 0 0 33.33" fill="none" stroke="white" strokeWidth="0.5"/>
+                    </pattern>
+                  </defs>
+                  <rect width="100" height="100" fill="url(#camera-grid)" />
+                </svg>
+              </div>
+            )}
+
+            {/* Camera Controls Overlay */}
+            {isStreaming && !capturedImage && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 sm:p-6">
+                <div className="flex items-center justify-center space-x-4">
+                  {/* Stop Camera */}
+                  <Button
+                    onClick={stopStream}
+                    variant="destructive"
+                    size="icon"
+                    className="w-12 h-12 rounded-full shadow-lg"
+                    data-testid="button-stop-camera"
+                  >
+                    <Square className="w-6 h-6" />
+                  </Button>
+                  
+                  {/* Capture Photo */}
+                  <Button
+                    onClick={capturePhoto}
+                    size="icon"
+                    className="w-16 h-16 rounded-full bg-white hover:bg-gray-100 text-primary shadow-xl border-4 border-primary"
+                    data-testid="button-capture-photo"
+                  >
+                    <Camera className="w-8 h-8" />
+                  </Button>
+                  
+                  {/* Switch Camera */}
+                  <Button
+                    onClick={switchCamera}
+                    variant="secondary"
+                    size="icon"
+                    className="w-12 h-12 rounded-full shadow-lg"
+                    data-testid="button-switch-camera"
+                  >
+                    <SwitchCamera className="w-6 h-6" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Top Info Bar */}
+            {isStreaming && !capturedImage && (
+              <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+                <Badge className="bg-black/50 text-white border-white/30">
+                  <Video className="w-3 h-3 mr-1 animate-pulse" />
+                  Kamera Aktif
+                </Badge>
+                <Button
+                  onClick={switchCamera}
+                  size="sm"
+                  variant="secondary"
+                  className="bg-black/50 hover:bg-black/70 text-white border-white/30"
+                >
+                  <RotateCcw className="w-4 h-4 mr-1" />
+                  Ganti
+                </Button>
+              </div>
+            )}
+
             {/* Error State */}
             {error && !isStreaming && !capturedImage && (
-              <div className="absolute inset-0 flex items-center justify-center bg-red-500/10">
+              <div className="absolute inset-0 flex items-center justify-center bg-red-500/10 z-10">
                 <div className="text-center p-4">
                   <Camera className="w-12 h-12 text-red-500 mx-auto mb-2" />
                   <p className="text-red-500 text-sm mb-3">{error}</p>
@@ -230,7 +321,7 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
 
             {/* Initial State - Not Streaming */}
             {!isStreaming && !capturedImage && !error && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20 z-10">
                 <div className="text-center p-4">
                   <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                     <Camera className="w-10 h-10 text-primary-foreground" />
@@ -249,102 +340,18 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
               </div>
             )}
 
-            {/* Video Stream - Camera Active */}
-            {isStreaming && !capturedImage && (
-              <>
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                  style={{ 
-                    transform: facingMode === "user" ? "scaleX(-1)" : "none",
-                    display: "block"
-                  }}
-                  data-testid="video-camera-preview"
-                />
-                
-                {/* Camera Grid Overlay */}
-                <div className="absolute inset-0 pointer-events-none opacity-30">
-                  <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <defs>
-                      <pattern id="camera-grid" width="33.33" height="33.33" patternUnits="userSpaceOnUse">
-                        <path d="M 33.33 0 L 0 0 0 33.33" fill="none" stroke="white" strokeWidth="0.5"/>
-                      </pattern>
-                    </defs>
-                    <rect width="100" height="100" fill="url(#camera-grid)" />
-                  </svg>
-                </div>
-
-                {/* Camera Controls Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 sm:p-6">
-                  <div className="flex items-center justify-center space-x-4">
-                    {/* Stop Camera */}
-                    <Button
-                      onClick={stopStream}
-                      variant="destructive"
-                      size="icon"
-                      className="w-12 h-12 rounded-full shadow-lg"
-                      data-testid="button-stop-camera"
-                    >
-                      <Square className="w-6 h-6" />
-                    </Button>
-                    
-                    {/* Capture Photo */}
-                    <Button
-                      onClick={capturePhoto}
-                      size="icon"
-                      className="w-16 h-16 rounded-full bg-white hover:bg-gray-100 text-primary shadow-xl border-4 border-primary"
-                      data-testid="button-capture-photo"
-                    >
-                      <Camera className="w-8 h-8" />
-                    </Button>
-                    
-                    {/* Switch Camera */}
-                    <Button
-                      onClick={switchCamera}
-                      variant="secondary"
-                      size="icon"
-                      className="w-12 h-12 rounded-full shadow-lg"
-                      data-testid="button-switch-camera"
-                    >
-                      <SwitchCamera className="w-6 h-6" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Top Info Bar */}
-                <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-                  <Badge className="bg-black/50 text-white border-white/30">
-                    <Video className="w-3 h-3 mr-1 animate-pulse" />
-                    Kamera Aktif
-                  </Badge>
-                  <Button
-                    onClick={switchCamera}
-                    size="sm"
-                    variant="secondary"
-                    className="bg-black/50 hover:bg-black/70 text-white border-white/30"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-1" />
-                    Ganti
-                  </Button>
-                </div>
-              </>
-            )}
-
             {/* Captured Image Preview */}
             {capturedImage && (
               <>
                 <img
                   src={capturedImage}
                   alt="Captured"
-                  className="w-full h-full object-contain"
+                  className="absolute inset-0 w-full h-full object-contain z-20"
                   data-testid="img-captured-preview"
                 />
                 
                 {/* Retake Button Overlay */}
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-4 right-4 z-30">
                   <Button
                     onClick={retakePhoto}
                     variant="secondary"
@@ -358,7 +365,7 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
                 </div>
 
                 {/* Preview Badge */}
-                <div className="absolute top-4 left-4">
+                <div className="absolute top-4 left-4 z-30">
                   <Badge className="bg-green-500 text-white">
                     <Camera className="w-3 h-3 mr-1" />
                     Foto Siap
