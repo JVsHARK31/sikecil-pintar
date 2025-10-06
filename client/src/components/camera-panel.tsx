@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, RotateCcw, Play, Square } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Camera, RotateCcw, Play, Square, SwitchCamera, Video } from "lucide-react";
 import { resizeImageIfNeeded } from "@/lib/image";
+import { useToast } from "@/hooks/use-toast";
 
 interface CameraPanelProps {
   onCapture: (dataURL: string) => void;
@@ -14,7 +16,9 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [error, setError] = useState<string>("");
+  const { toast } = useToast();
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -53,10 +57,11 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
       const constraints: MediaStreamConstraints = {
         video: {
           deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
-          facingMode: selectedDeviceId ? undefined : { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        }
+          facingMode: selectedDeviceId ? undefined : { ideal: facingMode },
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 },
+        },
+        audio: false
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -64,11 +69,37 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-        setIsStreaming(true);
+        
+        // Wait for video metadata to load
+        await new Promise<void>((resolve) => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = () => {
+              videoRef.current?.play()
+                .then(() => {
+                  setIsStreaming(true);
+                  toast({
+                    title: "Kamera Aktif",
+                    description: facingMode === "environment" ? "Kamera belakang digunakan" : "Kamera depan digunakan",
+                  });
+                  resolve();
+                })
+                .catch((err) => {
+                  console.error('Error playing video:', err);
+                  setError('Gagal memutar video preview');
+                  resolve();
+                });
+            };
+          }
+        });
       }
     } catch (err) {
       console.error('Error starting camera:', err);
-      setError('Unable to start camera. Please check permissions.');
+      setError('Tidak dapat mengakses kamera. Periksa izin kamera.');
+      toast({
+        variant: "destructive",
+        title: "Kamera Gagal",
+        description: "Pastikan Anda telah memberikan izin akses kamera",
+      });
     }
   };
 
@@ -106,12 +137,24 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
     onCapture(dataURL);
   };
 
-  const switchCamera = () => {
-    if (devices.length > 1) {
-      const currentIndex = devices.findIndex(device => device.deviceId === selectedDeviceId);
-      const nextIndex = (currentIndex + 1) % devices.length;
-      setSelectedDeviceId(devices[nextIndex].deviceId);
+  const switchCamera = async () => {
+    // Toggle between front and back camera
+    const newFacingMode = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(newFacingMode);
+    
+    // Restart stream with new facing mode
+    if (isStreaming) {
+      stopStream();
+      setTimeout(() => {
+        setError("");
+        startStream();
+      }, 100);
     }
+    
+    toast({
+      title: "Beralih Kamera",
+      description: newFacingMode === "environment" ? "Menggunakan kamera belakang" : "Menggunakan kamera depan",
+    });
   };
 
   // Restart stream when device changes
@@ -126,37 +169,60 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Camera className="w-5 h-5" />
-            <span>Camera Analysis</span>
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Position food items clearly in the camera view
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center space-x-2">
+                <Camera className="w-5 h-5" />
+                <span>Camera Analysis</span>
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Posisikan makanan dengan jelas di tampilan kamera
+              </p>
+            </div>
+            {isStreaming && (
+              <Badge variant="default" className="flex items-center space-x-1">
+                <Video className="w-3 h-3" />
+                <span className="text-xs">
+                  {facingMode === "environment" ? "Belakang" : "Depan"}
+                </span>
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         
         <CardContent className="space-y-4">
           {/* Camera Preview */}
-          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+          <div className="relative aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
             {error ? (
               <div className="absolute inset-0 flex items-center justify-center bg-destructive/10">
                 <div className="text-center p-4">
                   <Camera className="w-12 h-12 text-destructive mx-auto mb-2" />
                   <p className="text-destructive text-sm">{error}</p>
+                  <Button 
+                    onClick={startStream} 
+                    variant="outline"
+                    className="mt-3"
+                    data-testid="button-retry-camera"
+                  >
+                    Coba Lagi
+                  </Button>
                 </div>
               </div>
             ) : !isStreaming ? (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
                 <div className="text-center">
-                  <Camera className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-muted-foreground text-sm">Camera Preview</p>
+                  <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Camera className="w-8 h-8 text-primary" />
+                  </div>
+                  <p className="text-foreground text-sm mb-4 px-4">Tekan tombol untuk mulai kamera</p>
                   <Button 
                     onClick={startStream} 
-                    className="mt-2"
+                    size="lg"
+                    className="shadow-lg"
                     data-testid="button-start-camera"
                   >
                     <Play className="w-4 h-4 mr-2" />
-                    Start Camera
+                    Mulai Kamera
                   </Button>
                 </div>
               </div>
@@ -168,6 +234,7 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
                   muted
                   playsInline
                   className="w-full h-full object-cover"
+                  style={{ transform: facingMode === "user" ? "scaleX(-1)" : "none" }}
                   data-testid="video-camera-preview"
                 />
                 
@@ -183,33 +250,51 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
                   </svg>
                 </div>
 
-                {/* Camera Controls Overlay */}
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-4">
+                {/* Camera Info Top */}
+                <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+                  <Badge variant="secondary" className="bg-black/50 text-white border-white/20">
+                    <Video className="w-3 h-3 mr-1" />
+                    {facingMode === "environment" ? "Kamera Belakang" : "Kamera Depan"}
+                  </Badge>
                   <Button
-                    onClick={captureImage}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground p-3 rounded-full shadow-lg"
-                    disabled={isAnalyzing}
-                    data-testid="button-capture-image"
+                    onClick={switchCamera}
+                    variant="secondary"
+                    size="sm"
+                    className="bg-black/50 hover:bg-black/70 text-white border-white/20"
+                    data-testid="button-switch-camera"
                   >
-                    <Camera className="w-6 h-6" />
+                    <SwitchCamera className="w-4 h-4 mr-2" />
+                    Ganti
                   </Button>
-                  {devices.length > 1 && (
-                    <Button
-                      onClick={switchCamera}
-                      variant="secondary"
-                      className="p-3 rounded-full shadow-lg"
-                      data-testid="button-switch-camera"
-                    >
-                      <RotateCcw className="w-6 h-6" />
-                    </Button>
-                  )}
+                </div>
+
+                {/* Camera Controls Overlay */}
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center space-x-4">
                   <Button
                     onClick={stopStream}
                     variant="destructive"
                     className="p-3 rounded-full shadow-lg"
                     data-testid="button-stop-camera"
                   >
-                    <Square className="w-6 h-6" />
+                    <Square className="w-5 h-5" />
+                  </Button>
+                  
+                  <Button
+                    onClick={captureImage}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground p-4 rounded-full shadow-lg scale-110"
+                    disabled={isAnalyzing}
+                    data-testid="button-capture-image"
+                  >
+                    <Camera className="w-7 h-7" />
+                  </Button>
+                  
+                  <Button
+                    onClick={switchCamera}
+                    variant="secondary"
+                    className="p-3 rounded-full shadow-lg bg-white/90 hover:bg-white"
+                    data-testid="button-switch-camera-bottom"
+                  >
+                    <RotateCcw className="w-5 h-5" />
                   </Button>
                 </div>
               </>
@@ -218,34 +303,49 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
 
           {/* Camera Controls */}
           <div className="space-y-3">
-            {devices.length > 0 && (
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Camera Device:</label>
+            {!isStreaming && (
+              <Button
+                onClick={startStream}
+                className="w-full bg-primary hover:bg-primary/90"
+                size="lg"
+                data-testid="button-start-camera-main"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Mulai Kamera
+              </Button>
+            )}
+            
+            {isStreaming && (
+              <Button
+                onClick={captureImage}
+                disabled={isAnalyzing}
+                className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+                size="lg"
+                data-testid="button-analyze-camera"
+              >
+                {isAnalyzing ? "Menganalisis..." : "Analisis Makanan"}
+              </Button>
+            )}
+
+            {devices.length > 1 && isStreaming && (
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <span className="text-sm font-medium">Pilih Kamera:</span>
                 <Select value={selectedDeviceId} onValueChange={setSelectedDeviceId}>
                   <SelectTrigger className="w-48" data-testid="select-camera-device">
-                    <SelectValue placeholder="Select camera" />
+                    <SelectValue placeholder="Pilih kamera" />
                   </SelectTrigger>
                   <SelectContent>
                     {devices
                       .filter(device => device.deviceId && device.deviceId.trim() !== '')
                       .map((device, index) => (
                         <SelectItem key={device.deviceId} value={device.deviceId}>
-                          {device.label || `Camera ${index + 1}`}
+                          {device.label || `Kamera ${index + 1}`}
                         </SelectItem>
                       ))}
                   </SelectContent>
                 </Select>
               </div>
             )}
-            
-            <Button
-              onClick={() => isStreaming && captureImage()}
-              disabled={!isStreaming || isAnalyzing}
-              className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground"
-              data-testid="button-analyze-camera"
-            >
-              {isAnalyzing ? "Analyzing..." : "Analyze Food with Camera"}
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -254,14 +354,33 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       
       {/* Camera Tips */}
-      <Card className="bg-blue-50 border-blue-200">
+      <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
         <CardContent className="pt-6">
-          <h4 className="font-medium text-blue-900 mb-2">Camera Tips</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Ensure good lighting on food items</li>
-            <li>• Hold camera steady for clear capture</li>
-            <li>• Position food items within the grid</li>
-            <li>• Avoid shadows and reflections</li>
+          <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3 flex items-center">
+            <Camera className="w-4 h-4 mr-2" />
+            Tips Kamera
+          </h4>
+          <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+            <li className="flex items-start">
+              <span className="mr-2">💡</span>
+              <span>Pastikan pencahayaan yang baik pada makanan</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">📱</span>
+              <span>Pegang kamera dengan stabil untuk hasil yang jelas</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">🎯</span>
+              <span>Posisikan makanan dalam grid kamera</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">✨</span>
+              <span>Hindari bayangan dan pantulan cahaya</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">🔄</span>
+              <span>Gunakan tombol "Ganti" untuk beralih kamera depan/belakang</span>
+            </li>
           </ul>
         </CardContent>
       </Card>

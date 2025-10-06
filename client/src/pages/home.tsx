@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, Upload, History, Save, Target } from "lucide-react";
+import { Camera, Upload, History, Save, Target, HelpCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CameraPanel } from "@/components/camera-panel";
 import { UploadPanel } from "@/components/upload-panel";
@@ -12,6 +12,7 @@ import { Downloads } from "@/components/downloads";
 import { EducationalDisclaimer, LoadingOverlay } from "@/components/alerts";
 import { MealHistory } from "@/pages/meal-history";
 import { NutritionGoalsPage } from "@/pages/nutrition-goals";
+import { FeatureGuide, useFeatureGuide } from "@/components/feature-guide";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { addMeal } from "@/lib/localStore";
@@ -25,6 +26,7 @@ export default function Home() {
   const [showNutritionGoals, setShowNutritionGoals] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isOpen: isGuideOpen, openGuide, closeGuide } = useFeatureGuide();
 
   const cameraMutation = useMutation({
     mutationFn: async (dataURL: string) => {
@@ -143,6 +145,16 @@ export default function Home() {
 
             {/* User Actions */}
             <div className="flex items-center space-x-1 sm:space-x-2">
+              <Button
+                variant="outline"
+                onClick={openGuide}
+                className="flex items-center space-x-1 px-2 sm:px-3"
+                size="sm"
+                data-testid="button-help"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
+              
               <Button
                 variant="outline"
                 onClick={() => setShowNutritionGoals(true)}
@@ -345,6 +357,9 @@ export default function Home() {
 
       {/* Loading Overlay */}
       <LoadingOverlay isVisible={isAnalyzing} />
+      
+      {/* Feature Guide */}
+      <FeatureGuide isOpen={isGuideOpen} onClose={closeGuide} />
     </div>
   );
 }
