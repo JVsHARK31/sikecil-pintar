@@ -30,6 +30,10 @@ Preferred communication style: Simple, everyday language.
 
 ### Core Features
 - **Dual Input Methods**: Camera capture with device selection and file upload with drag-and-drop
+  - Enhanced camera preview with better mobile visibility (black background, metadata loading)
+  - Front/back camera switching using facingMode (environment/user)
+  - Real-time video preview with grid overlay for composition guidance
+  - Mirror effect for front-facing camera
 - **Food Item Detection**: Multi-item food composition analysis with bounding box overlays
 - **Nutrition Analysis**: Comprehensive nutritional breakdown including:
   - Macronutrients (protein, carbs, fat, fiber, sugar)
@@ -37,10 +41,29 @@ Preferred communication style: Simple, everyday language.
   - Estimated serving sizes in grams
   - Allergen identification
 - **Visual Feedback**: Precise bounding box overlays on analyzed images
-- **Data Export**: JSON and CSV export capabilities for analysis results
+- **Data Export**: Multiple export formats for meal history
+  - JSON: Full data backup with complete analysis details
+  - CSV: Spreadsheet format for Excel/Google Sheets analysis
+  - TXT: Readable report with summary and detailed breakdowns
+  - Period-specific exports (week, month, or all time)
+- **Feature Guide**: Interactive onboarding and help system
+  - Automatically shows on first visit (localStorage-based)
+  - 6 feature pages with step-by-step instructions
+  - Reopen anytime via Help button in header
+  - Full navigation with progress indicators
+- **Meal History**: Complete meal tracking with localStorage
+  - Save analyzed meals with automatic timestamps
+  - Filter by period (7 days, 30 days, all)
+  - Summary cards showing totals and averages
+  - Delete individual meals
+  - Export capabilities in multiple formats
 
 ### UI/UX Design
 - **Mobile-First**: Responsive design optimized for mobile devices
+- **Indonesian Language**: Complete Indonesian localization for all user-facing text
+  - All UI elements, buttons, labels, and notifications in Indonesian
+  - Feature guide with step-by-step instructions in Indonesian
+  - Toast notifications and error messages in Indonesian
 - **Tab Navigation**: Clean interface switching between camera and upload modes
 - **Loading States**: Comprehensive loading overlays and progress indicators
 - **Educational Disclaimers**: Clear messaging about the educational nature of the analysis

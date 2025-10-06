@@ -37,14 +37,14 @@ export default function Home() {
       setAnalysisResult(data);
       setAnalyzedImageUrl(dataURL);
       toast({
-        title: "Analysis Complete",
-        description: `Detected ${data.composition.length} food items`,
+        title: "Analisis Selesai",
+        description: `Terdeteksi ${data.composition.length} item makanan`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Analysis Failed",
-        description: error.message || "Camera analysis failed",
+        title: "Analisis Gagal",
+        description: error.message || "Analisis kamera gagal",
         variant: "destructive",
       });
     },
@@ -59,14 +59,14 @@ export default function Home() {
       setAnalysisResult(data);
       setAnalyzedImageUrl(dataURL);
       toast({
-        title: "Analysis Complete",
-        description: `Detected ${data.composition.length} food items`,
+        title: "Analisis Selesai",
+        description: `Terdeteksi ${data.composition.length} item makanan`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Analysis Failed",
-        description: error.message || "Image analysis failed",
+        title: "Analisis Gagal",
+        description: error.message || "Analisis gambar gagal",
         variant: "destructive",
       });
     },
@@ -139,7 +139,7 @@ export default function Home() {
               </div>
               <div className="min-w-0">
                 <h1 className="text-base sm:text-xl font-bold text-foreground truncate">Kids B-Care</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Food Nutrition Analysis</p>
+                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Analisis Nutrisi Makanan</p>
               </div>
             </div>
 

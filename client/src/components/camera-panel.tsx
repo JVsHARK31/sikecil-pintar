@@ -130,7 +130,7 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
     
     // Check compressed size - same as upload path
     if (dataURL.length > 512 * 1024) {
-      setError('Captured image is too large. Please try with better lighting or a different angle.');
+      setError('Gambar terlalu besar. Coba dengan pencahayaan lebih baik atau sudut yang berbeda.');
       return;
     }
     
@@ -173,7 +173,7 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
             <div>
               <CardTitle className="flex items-center space-x-2">
                 <Camera className="w-5 h-5" />
-                <span>Camera Analysis</span>
+                <span>Analisis Kamera</span>
               </CardTitle>
               <p className="text-sm text-muted-foreground">
                 Posisikan makanan dengan jelas di tampilan kamera

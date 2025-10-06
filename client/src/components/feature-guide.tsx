@@ -12,10 +12,10 @@ interface FeatureGuideProps {
 const features = [
   {
     icon: Camera,
-    title: "Camera Scan",
+    title: "Scan Kamera",
     description: "Gunakan kamera untuk scan makanan secara langsung",
     steps: [
-      "Klik tab 'Camera' di halaman utama",
+      "Klik tab 'Kamera' di halaman utama",
       "Pilih kamera depan atau belakang",
       "Klik tombol 'Mulai Kamera' untuk aktifkan preview",
       "Arahkan kamera ke makanan dengan pencahayaan yang baik",
@@ -26,13 +26,13 @@ const features = [
   },
   {
     icon: Upload,
-    title: "Upload Gambar",
-    description: "Upload foto makanan dari galeri",
+    title: "Unggah Gambar",
+    description: "Unggah foto makanan dari galeri",
     steps: [
-      "Klik tab 'Upload' di halaman utama",
-      "Klik area upload atau drag & drop gambar",
+      "Klik tab 'Unggah' di halaman utama",
+      "Klik area unggah atau drag & drop gambar",
       "Pilih foto makanan dari galeri",
-      "Tunggu proses upload dan analisis",
+      "Tunggu proses unggah dan analisis",
       "Lihat hasil deteksi makanan dan nutrisi"
     ],
     color: "bg-green-500"
@@ -43,10 +43,10 @@ const features = [
     description: "Simpan hasil analisis ke riwayat",
     steps: [
       "Setelah analisis selesai, scroll ke bagian hasil",
-      "Klik tombol 'Save as Meal' di pojok kanan atas",
+      "Klik tombol 'Simpan Makanan' di pojok kanan atas",
       "Makanan otomatis tersimpan dengan waktu saat ini",
       "Data tersimpan di perangkat Anda (offline)",
-      "Akses kapan saja di menu History"
+      "Akses kapan saja di menu Riwayat"
     ],
     color: "bg-purple-500"
   },
@@ -55,7 +55,7 @@ const features = [
     title: "Riwayat Makanan",
     description: "Lihat dan kelola riwayat makanan Anda",
     steps: [
-      "Klik tombol 'History' di header",
+      "Klik tombol 'Riwayat' di header (ikon History)",
       "Lihat semua makanan yang pernah di-scan",
       "Filter berdasarkan periode (7 hari, 30 hari, semua)",
       "Lihat ringkasan total kalori dan nutrisi",
@@ -69,7 +69,7 @@ const features = [
     title: "Export Data",
     description: "Download riwayat dalam berbagai format",
     steps: [
-      "Buka halaman History",
+      "Buka halaman Riwayat",
       "Pilih periode filter yang diinginkan",
       "Klik tombol download (JSON, CSV, atau TXT)",
       "JSON: Data lengkap untuk backup",
@@ -83,7 +83,7 @@ const features = [
     title: "Goals Nutrisi",
     description: "Atur dan pantau target nutrisi harian",
     steps: [
-      "Klik tombol 'Goals' di header",
+      "Klik tombol 'Target' di header (ikon Goals)",
       "Lihat rekomendasi kebutuhan nutrisi harian",
       "Bandingkan dengan konsumsi aktual Anda",
       "Pantau progress kalori, protein, karbo, dan lemak",
