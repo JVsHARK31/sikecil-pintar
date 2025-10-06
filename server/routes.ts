@@ -72,9 +72,12 @@ Return JSON in this exact format:
 }`;
 
 async function callSumopodAPI(apiKey: string, model: string, dataURL: string): Promise<any> {
+  // GPT-5-nano only supports temperature=1, other models can use 0.2
+  const temperature = model === "gpt-5-nano" ? 1 : 0.2;
+  
   const requestBody = {
     model,
-    temperature: 0.2,
+    temperature,
     max_tokens: 4000,
     messages: [
       {
