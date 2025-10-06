@@ -118,98 +118,101 @@ export function FeatureGuide({ isOpen, onClose }: FeatureGuideProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl sm:text-2xl">Panduan Fitur Kids B-Care</DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="text-lg sm:text-xl md:text-2xl">Panduan Fitur Kids B-Care</DialogTitle>
             <Button
               variant="ghost"
               size="icon"
               onClick={handleClose}
-              className="h-8 w-8"
+              className="h-8 w-8 flex-shrink-0"
               data-testid="button-close-guide"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Pelajari cara menggunakan semua fitur aplikasi
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Feature Card */}
           <Card className={`${currentFeature.color} text-white`}>
-            <CardContent className="pt-6">
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Icon className="w-6 h-6" />
+            <CardContent className="pt-4 sm:pt-6 pb-4">
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div>
-                  <h3 className="text-lg sm:text-xl font-bold">{currentFeature.title}</h3>
-                  <p className="text-sm opacity-90">{currentFeature.description}</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg md:text-xl font-bold truncate">{currentFeature.title}</h3>
+                  <p className="text-xs sm:text-sm opacity-90 line-clamp-2">{currentFeature.description}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Steps */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-base sm:text-lg">Langkah-langkah:</h4>
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="font-semibold text-sm sm:text-base md:text-lg">Langkah-langkah:</h4>
             <div className="space-y-2">
               {currentFeature.steps.map((step, index) => (
                 <div
                   key={index}
-                  className="flex items-start space-x-3 p-3 bg-muted rounded-lg"
+                  className="flex items-start space-x-2 sm:space-x-3 p-2 sm:p-3 bg-muted rounded-lg"
                 >
-                  <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold">
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center flex-shrink-0 text-xs sm:text-sm font-bold">
                     {index + 1}
                   </div>
-                  <p className="text-sm flex-1 pt-0.5">{step}</p>
+                  <p className="text-xs sm:text-sm flex-1 pt-0.5 break-words">{step}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Navigation */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 pt-3 sm:pt-4 border-t">
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
               {features.map((_, index) => (
                 <div
                   key={index}
-                  className={`w-2 h-2 rounded-full transition-all ${
+                  className={`h-1.5 sm:h-2 rounded-full transition-all ${
                     index === currentPage
-                      ? "bg-primary w-8"
-                      : "bg-muted-foreground/30"
+                      ? "bg-primary w-6 sm:w-8"
+                      : "bg-muted-foreground/30 w-1.5 sm:w-2"
                   }`}
                 />
               ))}
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handlePrev}
                 disabled={currentPage === 0}
+                className="flex-1 sm:flex-none"
                 data-testid="button-guide-prev"
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Sebelumnya</span>
+                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                <span className="sm:inline">Sebelumnya</span>
               </Button>
               {currentPage < features.length - 1 ? (
                 <Button
                   size="sm"
                   onClick={handleNext}
+                  className="flex-1 sm:flex-none"
                   data-testid="button-guide-next"
                 >
-                  <span className="hidden sm:inline">Selanjutnya</span>
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <span className="sm:inline">Selanjutnya</span>
+                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 sm:ml-1" />
                 </Button>
               ) : (
                 <Button
                   size="sm"
                   onClick={handleClose}
+                  className="flex-1 sm:flex-none"
                   data-testid="button-guide-finish"
                 >
                   Selesai
@@ -219,7 +222,7 @@ export function FeatureGuide({ isOpen, onClose }: FeatureGuideProps) {
           </div>
 
           {/* Progress Text */}
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-xs sm:text-sm text-muted-foreground">
             Fitur {currentPage + 1} dari {features.length}
           </p>
         </div>
