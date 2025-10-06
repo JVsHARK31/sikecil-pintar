@@ -81,166 +81,173 @@ export function MealHistory({ onBack }: MealHistoryProps) {
   const totals = getTotalNutrition();
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={onBack} data-testid="button-back">
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Back to Analysis
-          </Button>
-          <h1 className="text-2xl font-bold">Meal History</h1>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <div className="flex rounded-md overflow-hidden border">
-            {(['week', 'month', 'all'] as const).map((period) => (
-              <Button
-                key={period}
-                variant={selectedPeriod === period ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setSelectedPeriod(period)}
-                className="rounded-none border-r last:border-r-0"
-                data-testid={`button-filter-${period}`}
-              >
-                {period === 'week' ? 'Week' : period === 'month' ? 'Month' : 'All'}
+      <div className="bg-card border-b border-border shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Button variant="ghost" size="sm" onClick={onBack} data-testid="button-back" className="px-2 sm:px-4">
+                <ChevronLeft className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Back to Analysis</span>
               </Button>
-            ))}
+              <h1 className="text-lg sm:text-2xl font-bold">Meal History</h1>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
+              <div className="flex rounded-md overflow-hidden border w-full sm:w-auto">
+                {(['week', 'month', 'all'] as const).map((period) => (
+                  <Button
+                    key={period}
+                    variant={selectedPeriod === period ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setSelectedPeriod(period)}
+                    className="rounded-none border-r last:border-r-0 flex-1 sm:flex-none text-xs sm:text-sm"
+                    data-testid={`button-filter-${period}`}
+                  >
+                    {period === 'week' ? 'Week' : period === 'month' ? 'Month' : 'All'}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
+      
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary" data-testid="text-total-meals">
-              {meals.length}
-            </div>
-            <div className="text-sm text-muted-foreground">Total Meals</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-secondary" data-testid="text-total-calories">
-              {Math.round(totals.calories)}
-            </div>
-            <div className="text-sm text-muted-foreground">Total Calories</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600" data-testid="text-avg-calories">
-              {meals.length > 0 ? Math.round(totals.calories / meals.length) : 0}
-            </div>
-            <div className="text-sm text-muted-foreground">Avg per Meal</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600" data-testid="text-total-protein">
-              {Math.round(totals.protein)}g
-            </div>
-            <div className="text-sm text-muted-foreground">Total Protein</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Meals List */}
-      <div className="space-y-4">
-        {isLoading ? (
-          <div className="text-center p-8">
-            <p className="text-muted-foreground">Loading your meals...</p>
-          </div>
-        ) : meals.length === 0 ? (
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <Card>
-            <CardContent className="p-8 text-center">
-              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-medium mb-2">No meals recorded</h3>
-              <p className="text-sm text-muted-foreground">
-                Start analyzing your meals to build your nutrition history.
-              </p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="text-xl sm:text-2xl font-bold text-primary" data-testid="text-total-meals">
+                {meals.length}
+              </div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Total Meals</div>
             </CardContent>
           </Card>
-        ) : (
-          meals.map((meal) => {
-            const analysis = meal.analysisData as NutritionAnalysis;
-            return (
-              <Card key={meal.id} className="overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-3">
-                        <Badge className={getMealTypeColor(meal.mealType)}>
-                          {meal.mealType}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          {format(new Date(meal.consumedAt), 'MMM d, yyyy h:mm a')}
-                        </span>
-                      </div>
-                      
-                      {meal.name && (
-                        <h3 className="font-medium mb-2" data-testid={`text-meal-name-${meal.id}`}>
-                          {meal.name}
-                        </h3>
-                      )}
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium">{analysis.totals.calories_kcal}</span>
-                          <span className="text-muted-foreground ml-1">kcal</span>
+          <Card>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="text-xl sm:text-2xl font-bold text-secondary" data-testid="text-total-calories">
+                {Math.round(totals.calories)}
+              </div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Total Calories</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="text-xl sm:text-2xl font-bold text-blue-600" data-testid="text-avg-calories">
+                {meals.length > 0 ? Math.round(totals.calories / meals.length) : 0}
+              </div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Avg per Meal</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="text-xl sm:text-2xl font-bold text-green-600" data-testid="text-total-protein">
+                {Math.round(totals.protein)}g
+              </div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Total Protein</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Meals List */}
+        <div className="space-y-3 sm:space-y-4">
+          {isLoading ? (
+            <div className="text-center p-6 sm:p-8">
+              <p className="text-sm sm:text-base text-muted-foreground">Loading your meals...</p>
+            </div>
+          ) : meals.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 sm:p-8 text-center">
+                <Calendar className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-sm sm:text-base font-medium mb-2">No meals recorded</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Start analyzing your meals to build your nutrition history.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            meals.map((meal) => {
+              const analysis = meal.analysisData as NutritionAnalysis;
+              return (
+                <Card key={meal.id} className="overflow-hidden">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                          <Badge className={getMealTypeColor(meal.mealType)}>
+                            {meal.mealType}
+                          </Badge>
+                          <span className="text-xs sm:text-sm text-muted-foreground">
+                            {format(new Date(meal.consumedAt), 'MMM d, yyyy h:mm a')}
+                          </span>
                         </div>
-                        <div>
-                          <span className="font-medium">{analysis.totals.macros.protein_g}g</span>
-                          <span className="text-muted-foreground ml-1">protein</span>
-                        </div>
-                        <div>
-                          <span className="font-medium">{analysis.totals.macros.carbs_g}g</span>
-                          <span className="text-muted-foreground ml-1">carbs</span>
-                        </div>
-                        <div>
-                          <span className="font-medium">{analysis.totals.macros.fat_g}g</span>
-                          <span className="text-muted-foreground ml-1">fat</span>
-                        </div>
-                      </div>
-                      
-                      {analysis.composition.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-sm text-muted-foreground mb-1">Items detected:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {analysis.composition.map((item, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {item.label}
-                              </Badge>
-                            ))}
+                        
+                        {meal.name && (
+                          <h3 className="text-sm sm:text-base font-medium mb-2" data-testid={`text-meal-name-${meal.id}`}>
+                            {meal.name}
+                          </h3>
+                        )}
+                        
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm mb-3">
+                          <div>
+                            <span className="font-medium">{analysis.totals.calories_kcal}</span>
+                            <span className="text-muted-foreground ml-1">kcal</span>
+                          </div>
+                          <div>
+                            <span className="font-medium">{analysis.totals.macros.protein_g}g</span>
+                            <span className="text-muted-foreground ml-1">protein</span>
+                          </div>
+                          <div>
+                            <span className="font-medium">{analysis.totals.macros.carbs_g}g</span>
+                            <span className="text-muted-foreground ml-1">carbs</span>
+                          </div>
+                          <div>
+                            <span className="font-medium">{analysis.totals.macros.fat_g}g</span>
+                            <span className="text-muted-foreground ml-1">fat</span>
                           </div>
                         </div>
-                      )}
+                        
+                        {analysis.composition.length > 0 && (
+                          <div className="mt-2 sm:mt-3">
+                            <p className="text-xs sm:text-sm text-muted-foreground mb-1">Items detected:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {analysis.composition.map((item, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {item.label}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {meal.notes && (
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-2 italic">
+                            "{meal.notes}"
+                          </p>
+                        )}
+                      </div>
                       
-                      {meal.notes && (
-                        <p className="text-sm text-muted-foreground mt-2 italic">
-                          "{meal.notes}"
-                        </p>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteMealMutation.mutate(meal.id)}
+                        disabled={deleteMealMutation.isPending}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 self-end sm:self-start"
+                        data-testid={`button-delete-meal-${meal.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteMealMutation.mutate(meal.id)}
-                      disabled={deleteMealMutation.isPending}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      data-testid={`button-delete-meal-${meal.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );
