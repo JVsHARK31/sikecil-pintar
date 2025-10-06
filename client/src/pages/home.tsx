@@ -13,6 +13,7 @@ import { EducationalDisclaimer, LoadingOverlay } from "@/components/alerts";
 import { MealHistory } from "@/pages/meal-history";
 import { NutritionGoalsPage } from "@/pages/nutrition-goals";
 import { FeatureGuide, useFeatureGuide } from "@/components/feature-guide";
+import { FeatureTour, useFeatureTour } from "@/components/feature-tour";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { addMeal } from "@/lib/localStore";
@@ -27,6 +28,7 @@ export default function Home() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isOpen: isGuideOpen, openGuide, closeGuide } = useFeatureGuide();
+  const { isOpen: isTourOpen, openTour, closeTour } = useFeatureTour();
 
   const cameraMutation = useMutation({
     mutationFn: async (dataURL: string) => {
@@ -124,7 +126,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-tour="welcome">
       {/* Header */}
       <header className="bg-card border-b border-border shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
@@ -147,7 +149,7 @@ export default function Home() {
             <div className="flex items-center space-x-1 sm:space-x-2">
               <Button
                 variant="outline"
-                onClick={openGuide}
+                onClick={openTour}
                 className="flex items-center space-x-1 px-2 sm:px-3"
                 size="sm"
                 data-testid="button-help"
@@ -161,6 +163,7 @@ export default function Home() {
                 className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4"
                 size="sm"
                 data-testid="button-nutrition-goals"
+                data-tour="goals-button"
               >
                 <Target className="h-4 w-4" />
                 <span className="hidden sm:inline">Target</span>
@@ -172,6 +175,7 @@ export default function Home() {
                 className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4"
                 size="sm"
                 data-testid="button-meal-history"
+                data-tour="history-button"
               >
                 <History className="h-4 w-4" />
                 <span className="hidden sm:inline">Riwayat</span>
@@ -191,6 +195,7 @@ export default function Home() {
                 value="camera" 
                 className="flex items-center justify-center space-x-1 sm:space-x-2 py-2"
                 data-testid="tab-camera"
+                data-tour="camera-tab"
               >
                 <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="text-sm sm:text-base">Kamera</span>
@@ -199,6 +204,7 @@ export default function Home() {
                 value="upload" 
                 className="flex items-center justify-center space-x-1 sm:space-x-2 py-2"
                 data-testid="tab-upload"
+                data-tour="upload-tab"
               >
                 <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="text-sm sm:text-base">Unggah</span>
@@ -275,7 +281,7 @@ export default function Home() {
 
         {/* Analysis Results */}
         {analysisResult && analyzedImageUrl && (
-          <Card className="mt-6 sm:mt-8">
+          <Card className="mt-6 sm:mt-8" data-tour="analyze-area">
             <CardHeader className="px-4 sm:px-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                 <div>
@@ -360,6 +366,9 @@ export default function Home() {
       
       {/* Feature Guide */}
       <FeatureGuide isOpen={isGuideOpen} onClose={closeGuide} />
+      
+      {/* Feature Tour */}
+      <FeatureTour isOpen={isTourOpen} onClose={closeTour} />
     </div>
   );
 }
