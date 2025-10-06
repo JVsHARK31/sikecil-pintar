@@ -50,24 +50,19 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         
-        // Wait for metadata and play
-        videoRef.current.onloadedmetadata = async () => {
-          console.log('[Camera] Video metadata loaded');
-          if (videoRef.current) {
-            try {
-              await videoRef.current.play();
-              console.log('[Camera] Video playing');
-              setIsStreaming(true);
-              toast({
-                title: "Kamera Aktif",
-                description: facingMode === "environment" ? "Menggunakan kamera belakang" : "Menggunakan kamera depan",
-              });
-            } catch (err) {
-              console.error('[Camera] Error playing video:', err);
-              setError('Gagal memutar video preview');
-            }
-          }
-        };
+        // Play immediately for iOS/Safari compatibility
+        try {
+          await videoRef.current.play();
+          console.log('[Camera] Video playing');
+          setIsStreaming(true);
+          toast({
+            title: "Kamera Aktif",
+            description: facingMode === "environment" ? "Menggunakan kamera belakang" : "Menggunakan kamera depan",
+          });
+        } catch (playErr) {
+          console.error('[Camera] Error playing video:', playErr);
+          setError('Gagal memutar video. Coba lagi.');
+        }
       }
     } catch (err) {
       console.error('[Camera] Error starting camera:', err);
@@ -146,41 +141,48 @@ export function CameraPanel({ onCapture, isAnalyzing }: CameraPanelProps) {
     }
   };
 
-  const switchCamera = () => {
+  const switchCamera = async () => {
     const newFacingMode = facingMode === "environment" ? "user" : "environment";
     setFacingMode(newFacingMode);
     
     if (isStreaming) {
       stopStream();
-      setTimeout(() => {
-        const constraints: MediaStreamConstraints = {
-          video: {
-            facingMode: { ideal: newFacingMode },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: false
-        };
-        
-        navigator.mediaDevices.getUserMedia(constraints)
-          .then(stream => {
-            if (videoRef.current) {
-              videoRef.current.srcObject = stream;
-              streamRef.current = stream;
-              videoRef.current.play()
-                .then(() => {
-                  setIsStreaming(true);
-                  toast({
-                    title: "Kamera Berubah",
-                    description: newFacingMode === "environment" ? "Menggunakan kamera belakang" : "Menggunakan kamera depan",
-                  });
-                });
-            }
-          })
-          .catch(err => {
-            console.error('Error switching camera:', err);
-            setError('Gagal beralih kamera');
+      
+      // Wait a bit for cleanup
+      setTimeout(async () => {
+        try {
+          const constraints: MediaStreamConstraints = {
+            video: {
+              facingMode: { ideal: newFacingMode },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+            audio: false
+          };
+          
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            streamRef.current = stream;
+            
+            // Play immediately for iOS/Safari compatibility
+            await videoRef.current.play();
+            setIsStreaming(true);
+            toast({
+              title: "Kamera Berubah",
+              description: newFacingMode === "environment" ? "Menggunakan kamera belakang" : "Menggunakan kamera depan",
+            });
+          }
+        } catch (err) {
+          console.error('Error switching camera:', err);
+          setError('Gagal beralih kamera. Coba lagi.');
+          toast({
+            variant: "destructive",
+            title: "Gagal Beralih",
+            description: "Tidak dapat beralih kamera",
           });
+        }
       }, 300);
     }
   };
