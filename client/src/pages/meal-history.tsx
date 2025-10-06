@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import type { NutritionAnalysis } from "@shared/schema";
 import { getMeals, getMealsByDateRange, deleteMeal, type LocalMeal } from "@/lib/localStore";
+import { MealHistoryDownloads } from "@/components/meal-history-downloads";
 
 interface MealHistoryProps {
   onBack: () => void;
@@ -120,6 +121,23 @@ export function MealHistory({ onBack }: MealHistoryProps) {
       </div>
       
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+
+        {/* Download Section */}
+        {meals.length > 0 && (
+          <Card className="bg-muted/50">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="text-sm sm:text-base font-semibold mb-1">Download Riwayat</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Export {meals.length} makanan dalam periode {selectedPeriod === 'week' ? '7 hari' : selectedPeriod === 'month' ? '30 hari' : 'semua'}
+                  </p>
+                </div>
+                <MealHistoryDownloads meals={meals} period={selectedPeriod} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
