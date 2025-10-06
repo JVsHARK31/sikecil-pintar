@@ -317,7 +317,7 @@ export function FeatureTour({ isOpen, onClose }: FeatureTourProps) {
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: -20 }}
           transition={{ duration: 0.3, type: "spring" }}
-          className="absolute w-full sm:max-w-md"
+          className="absolute"
           style={{
             ...getTooltipPosition(),
             pointerEvents: "auto",
@@ -326,42 +326,42 @@ export function FeatureTour({ isOpen, onClose }: FeatureTourProps) {
           }}
         >
           <Card className="shadow-2xl border-2 border-primary/50">
-            <CardHeader className="pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+            <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
               <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                <div className="flex items-center space-x-2 flex-1 min-w-0">
                   {Icon && (
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                    <div className="w-7 h-7 sm:w-9 sm:h-9 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                     </div>
                   )}
-                  <CardTitle className="text-base sm:text-lg leading-tight truncate">{currentTourStep.title}</CardTitle>
+                  <CardTitle className="text-sm sm:text-base md:text-lg leading-tight break-words">{currentTourStep.title}</CardTitle>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleSkip}
-                  className="h-8 w-8 flex-shrink-0"
+                  className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
                   data-testid="button-skip-tour"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6 pb-4 sm:pb-6">
-              <CardDescription className="text-sm sm:text-base leading-relaxed">
+            <CardContent className="space-y-2 sm:space-y-3 px-3 sm:px-4 pb-3 sm:pb-4">
+              <CardDescription className="text-xs sm:text-sm leading-relaxed break-words">
                 {currentTourStep.description}
               </CardDescription>
 
               {/* Progress Dots */}
-              <div className="flex items-center justify-center space-x-2 py-2">
+              <div className="flex items-center justify-center space-x-1.5 sm:space-x-2 py-1.5 sm:py-2">
                 {tourSteps.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentStep(index)}
                     className={`transition-all duration-300 rounded-full ${
                       index === currentStep
-                        ? "w-8 h-2 bg-primary"
-                        : "w-2 h-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                        ? "w-6 sm:w-8 h-1.5 sm:h-2 bg-primary"
+                        : "w-1.5 sm:w-2 h-1.5 sm:h-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                     }`}
                     data-testid={`tour-dot-${index}`}
                   />
@@ -369,28 +369,28 @@ export function FeatureTour({ isOpen, onClose }: FeatureTourProps) {
               </div>
 
               {/* Navigation Buttons */}
-              <div className="flex items-center justify-between pt-2 border-t gap-2">
-                <div className="flex items-center space-x-1 sm:space-x-2">
+              <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t gap-1.5 sm:gap-2">
+                <div className="flex items-center space-x-1">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handlePrev}
                     disabled={currentStep === 0}
                     data-testid="button-tour-prev"
-                    className="text-xs sm:text-sm px-2 sm:px-3"
+                    className="text-xs px-2 h-7 sm:h-8"
                   >
-                    <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-                    <span className="hidden sm:inline">Kembali</span>
+                    <ChevronLeft className="h-3 w-3 sm:mr-1" />
+                    <span className="hidden sm:inline text-xs">Kembali</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleSkip}
-                    className="text-muted-foreground text-xs sm:text-sm px-2 sm:px-3"
+                    className="text-muted-foreground text-xs px-2 h-7 sm:h-8"
                     data-testid="button-tour-skip"
                   >
-                    <SkipForward className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-                    <span className="hidden sm:inline">Lewati</span>
+                    <SkipForward className="h-3 w-3 sm:mr-1" />
+                    <span className="hidden sm:inline text-xs">Lewati</span>
                   </Button>
                 </div>
 
@@ -398,15 +398,15 @@ export function FeatureTour({ isOpen, onClose }: FeatureTourProps) {
                   size="sm"
                   onClick={handleNext}
                   data-testid="button-tour-next"
-                  className="text-xs sm:text-sm px-3 sm:px-4"
+                  className="text-xs px-2.5 sm:px-3 h-7 sm:h-8"
                 >
                   {currentStep === tourSteps.length - 1 ? "Selesai" : "Lanjut"}
-                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
+                  <ChevronRight className="h-3 w-3 ml-1" />
                 </Button>
               </div>
 
               {/* Step Counter */}
-              <p className="text-center text-xs sm:text-sm text-muted-foreground">
+              <p className="text-center text-xs text-muted-foreground pt-0.5">
                 Langkah {currentStep + 1} dari {tourSteps.length}
               </p>
             </CardContent>
