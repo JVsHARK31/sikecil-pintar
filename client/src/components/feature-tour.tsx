@@ -89,12 +89,32 @@ export function FeatureTour({ isOpen, onClose }: FeatureTourProps) {
       if (target) {
         const rect = target.getBoundingClientRect();
         setHighlightRect(rect);
+        
+        // Auto-scroll element into view if not fully visible
+        if (currentTourStep.position !== "center") {
+          const isInView = (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= window.innerHeight &&
+            rect.right <= window.innerWidth
+          );
+          
+          if (!isInView) {
+            target.scrollIntoView({ 
+              behavior: "smooth", 
+              block: "center",
+              inline: "center"
+            });
+          }
+        }
       } else {
         setHighlightRect(null);
       }
     };
 
-    updateHighlight();
+    // Delay untuk ensure smooth transition
+    setTimeout(updateHighlight, 100);
+    
     window.addEventListener("resize", updateHighlight);
     window.addEventListener("scroll", updateHighlight);
 
@@ -102,7 +122,7 @@ export function FeatureTour({ isOpen, onClose }: FeatureTourProps) {
       window.removeEventListener("resize", updateHighlight);
       window.removeEventListener("scroll", updateHighlight);
     };
-  }, [currentStep, isOpen, currentTourStep.target]);
+  }, [currentStep, isOpen, currentTourStep.target, currentTourStep.position]);
 
   const handleNext = () => {
     if (currentStep < tourSteps.length - 1) {
@@ -143,31 +163,83 @@ export function FeatureTour({ isOpen, onClose }: FeatureTourProps) {
       };
     }
 
-    const tooltipWidth = 400;
-    const tooltipHeight = 250;
-    const offset = 20;
+    // Responsive sizing - smaller on mobile
+    const isMobile = window.innerWidth < 640; // sm breakpoint
+    const tooltipWidth = isMobile ? Math.min(window.innerWidth - 32, 380) : 400; // 16px padding each side on mobile
+    const tooltipHeight = 280; // Approximate height
+    const offset = isMobile ? 12 : 20;
+    const margin = isMobile ? 16 : 20;
+
+    // Calculate available space
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
     switch (currentTourStep.position) {
       case "bottom":
+        const bottomSpace = viewportHeight - highlightRect.bottom - offset;
+        
+        // If not enough space below, position above instead
+        if (bottomSpace < tooltipHeight && highlightRect.top > tooltipHeight + offset) {
+          return {
+            top: `${Math.max(margin, highlightRect.top - tooltipHeight - offset)}px`,
+            left: `${margin}px`,
+            right: `${margin}px`,
+          };
+        }
+        
         return {
           top: `${highlightRect.bottom + offset}px`,
-          left: `${Math.max(20, Math.min(window.innerWidth - tooltipWidth - 20, highlightRect.left + highlightRect.width / 2 - tooltipWidth / 2))}px`,
+          left: `${margin}px`,
+          right: `${margin}px`,
         };
+      
       case "top":
+        const topSpace = highlightRect.top - offset;
+        
+        // If not enough space above, position below instead
+        if (topSpace < tooltipHeight && (viewportHeight - highlightRect.bottom) > tooltipHeight + offset) {
+          return {
+            top: `${highlightRect.bottom + offset}px`,
+            left: `${margin}px`,
+            right: `${margin}px`,
+          };
+        }
+        
         return {
-          top: `${Math.max(20, highlightRect.top - tooltipHeight - offset)}px`,
-          left: `${Math.max(20, Math.min(window.innerWidth - tooltipWidth - 20, highlightRect.left + highlightRect.width / 2 - tooltipWidth / 2))}px`,
+          top: `${Math.max(margin, highlightRect.top - tooltipHeight - offset)}px`,
+          left: `${margin}px`,
+          right: `${margin}px`,
         };
+      
       case "left":
-        return {
-          top: `${Math.max(20, highlightRect.top + highlightRect.height / 2 - tooltipHeight / 2)}px`,
-          left: `${Math.max(20, highlightRect.left - tooltipWidth - offset)}px`,
-        };
       case "right":
+        // On mobile, always position below to avoid horizontal cropping
+        if (isMobile) {
+          return {
+            top: `${highlightRect.bottom + offset}px`,
+            left: `${margin}px`,
+            right: `${margin}px`,
+          };
+        }
+        
+        // Desktop left/right positioning
+        const isLeft = currentTourStep.position === "left";
+        const horizontalSpace = isLeft ? highlightRect.left : (viewportWidth - highlightRect.right);
+        
+        if (horizontalSpace < tooltipWidth + offset) {
+          // Not enough space, position below
+          return {
+            top: `${highlightRect.bottom + offset}px`,
+            left: `${margin}px`,
+            right: `${margin}px`,
+          };
+        }
+        
         return {
-          top: `${Math.max(20, highlightRect.top + highlightRect.height / 2 - tooltipHeight / 2)}px`,
-          left: `${Math.min(window.innerWidth - tooltipWidth - 20, highlightRect.right + offset)}px`,
+          top: `${Math.max(margin, Math.min(viewportHeight - tooltipHeight - margin, highlightRect.top + highlightRect.height / 2 - tooltipHeight / 2))}px`,
+          left: isLeft ? `${Math.max(margin, highlightRect.left - tooltipWidth - offset)}px` : `${Math.min(viewportWidth - tooltipWidth - margin, highlightRect.right + offset)}px`,
         };
+      
       default:
         return {
           top: "50%",
@@ -245,36 +317,38 @@ export function FeatureTour({ isOpen, onClose }: FeatureTourProps) {
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: -20 }}
           transition={{ duration: 0.3, type: "spring" }}
-          className="absolute max-w-md w-full mx-4"
+          className="absolute w-full sm:max-w-md"
           style={{
             ...getTooltipPosition(),
             pointerEvents: "auto",
+            maxHeight: "90vh",
+            overflowY: "auto",
           }}
         >
           <Card className="shadow-2xl border-2 border-primary/50">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3 flex-1">
+            <CardHeader className="pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
                   {Icon && (
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-primary" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                     </div>
                   )}
-                  <CardTitle className="text-lg">{currentTourStep.title}</CardTitle>
+                  <CardTitle className="text-base sm:text-lg leading-tight truncate">{currentTourStep.title}</CardTitle>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleSkip}
-                  className="h-8 w-8 -mt-1"
+                  className="h-8 w-8 flex-shrink-0"
                   data-testid="button-skip-tour"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <CardDescription className="text-base leading-relaxed">
+            <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6 pb-4 sm:pb-6">
+              <CardDescription className="text-sm sm:text-base leading-relaxed">
                 {currentTourStep.description}
               </CardDescription>
 
@@ -295,27 +369,28 @@ export function FeatureTour({ isOpen, onClose }: FeatureTourProps) {
               </div>
 
               {/* Navigation Buttons */}
-              <div className="flex items-center justify-between pt-2 border-t">
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between pt-2 border-t gap-2">
+                <div className="flex items-center space-x-1 sm:space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handlePrev}
                     disabled={currentStep === 0}
                     data-testid="button-tour-prev"
+                    className="text-xs sm:text-sm px-2 sm:px-3"
                   >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Kembali
+                    <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Kembali</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleSkip}
-                    className="text-muted-foreground"
+                    className="text-muted-foreground text-xs sm:text-sm px-2 sm:px-3"
                     data-testid="button-tour-skip"
                   >
-                    <SkipForward className="h-4 w-4 mr-1" />
-                    Lewati
+                    <SkipForward className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Lewati</span>
                   </Button>
                 </div>
 
@@ -323,14 +398,15 @@ export function FeatureTour({ isOpen, onClose }: FeatureTourProps) {
                   size="sm"
                   onClick={handleNext}
                   data-testid="button-tour-next"
+                  className="text-xs sm:text-sm px-3 sm:px-4"
                 >
                   {currentStep === tourSteps.length - 1 ? "Selesai" : "Lanjut"}
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                 </Button>
               </div>
 
               {/* Step Counter */}
-              <p className="text-center text-xs text-muted-foreground">
+              <p className="text-center text-xs sm:text-sm text-muted-foreground">
                 Langkah {currentStep + 1} dari {tourSteps.length}
               </p>
             </CardContent>
