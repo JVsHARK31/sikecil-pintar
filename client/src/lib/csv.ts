@@ -102,3 +102,92 @@ export function downloadJSON(analysis: NutritionAnalysis, filename: string = 'nu
     document.body.removeChild(link);
   }
 }
+
+export function exportToTXT(analysis: NutritionAnalysis): string {
+  let txtContent = '===================================\n';
+  txtContent += '    NUTRITION ANALYSIS REPORT\n';
+  txtContent += '===================================\n\n';
+  
+  txtContent += 'OVERALL TOTALS\n';
+  txtContent += '-----------------------------------\n';
+  txtContent += `Total Weight: ${analysis.totals.serving_total_g}g\n`;
+  txtContent += `Total Calories: ${analysis.totals.calories_kcal} kcal\n\n`;
+  
+  txtContent += 'MACRONUTRIENTS\n';
+  txtContent += '-----------------------------------\n';
+  txtContent += `Protein: ${analysis.totals.macros.protein_g}g\n`;
+  txtContent += `Carbohydrates: ${analysis.totals.macros.carbs_g}g\n`;
+  txtContent += `  - Fiber: ${analysis.totals.macros.fiber_g}g\n`;
+  txtContent += `  - Sugar: ${analysis.totals.macros.sugar_g}g\n`;
+  txtContent += `Fat: ${analysis.totals.macros.fat_g}g\n\n`;
+  
+  txtContent += 'MICRONUTRIENTS\n';
+  txtContent += '-----------------------------------\n';
+  txtContent += `Sodium: ${analysis.totals.micros.sodium_mg}mg\n`;
+  txtContent += `Potassium: ${analysis.totals.micros.potassium_mg}mg\n`;
+  txtContent += `Calcium: ${analysis.totals.micros.calcium_mg}mg\n`;
+  txtContent += `Iron: ${analysis.totals.micros.iron_mg}mg\n`;
+  txtContent += `Vitamin A: ${analysis.totals.micros.vitamin_a_mcg}mcg\n`;
+  txtContent += `Vitamin C: ${analysis.totals.micros.vitamin_c_mg}mg\n`;
+  txtContent += `Cholesterol: ${analysis.totals.micros.cholesterol_mg}mg\n\n`;
+  
+  if (analysis.totals.allergens.length > 0) {
+    txtContent += 'ALLERGENS\n';
+    txtContent += '-----------------------------------\n';
+    txtContent += analysis.totals.allergens.join(', ') + '\n\n';
+  }
+  
+  txtContent += 'DETECTED FOOD ITEMS\n';
+  txtContent += '===================================\n\n';
+  
+  analysis.composition.forEach((item, index) => {
+    txtContent += `${index + 1}. ${item.label.toUpperCase()}\n`;
+    txtContent += `   Confidence: ${(item.confidence * 100).toFixed(1)}%\n`;
+    txtContent += `   Weight: ${item.serving_est_g}g\n`;
+    txtContent += `   Calories: ${item.nutrition.calories_kcal} kcal\n`;
+    txtContent += `   \n`;
+    txtContent += `   Macros:\n`;
+    txtContent += `     - Protein: ${item.nutrition.macros.protein_g}g\n`;
+    txtContent += `     - Carbs: ${item.nutrition.macros.carbs_g}g\n`;
+    txtContent += `     - Fat: ${item.nutrition.macros.fat_g}g\n`;
+    txtContent += `     - Fiber: ${item.nutrition.macros.fiber_g}g\n`;
+    txtContent += `     - Sugar: ${item.nutrition.macros.sugar_g}g\n`;
+    txtContent += `   \n`;
+    txtContent += `   Micros:\n`;
+    txtContent += `     - Sodium: ${item.nutrition.micros.sodium_mg}mg\n`;
+    txtContent += `     - Potassium: ${item.nutrition.micros.potassium_mg}mg\n`;
+    txtContent += `     - Calcium: ${item.nutrition.micros.calcium_mg}mg\n`;
+    txtContent += `     - Iron: ${item.nutrition.micros.iron_mg}mg\n`;
+    txtContent += `     - Vitamin A: ${item.nutrition.micros.vitamin_a_mcg}mcg\n`;
+    txtContent += `     - Vitamin C: ${item.nutrition.micros.vitamin_c_mg}mg\n`;
+    txtContent += `     - Cholesterol: ${item.nutrition.micros.cholesterol_mg}mg\n`;
+    
+    if (item.nutrition.allergens.length > 0) {
+      txtContent += `   \n`;
+      txtContent += `   Allergens: ${item.nutrition.allergens.join(', ')}\n`;
+    }
+    txtContent += `\n`;
+  });
+  
+  txtContent += '===================================\n';
+  txtContent += `Generated: ${new Date().toLocaleString()}\n`;
+  txtContent += '===================================\n';
+  
+  return txtContent;
+}
+
+export function downloadTXT(analysis: NutritionAnalysis, filename: string = 'nutrition-analysis.txt') {
+  const txtContent = exportToTXT(analysis);
+  const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8;' });
+  const link = document.createElement('a');
+  
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+}

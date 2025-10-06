@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import type { NutritionAnalysis } from "@shared/schema";
-import { downloadJSON, downloadCSV } from "@/lib/csv";
+import { downloadJSON, downloadCSV, downloadTXT } from "@/lib/csv";
 import { useToast } from "@/hooks/use-toast";
 
 interface DownloadsProps {
@@ -45,25 +45,57 @@ export function Downloads({ analysis }: DownloadsProps) {
     }
   };
 
+  const handleExportTXT = () => {
+    try {
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      downloadTXT(analysis, `nutrition-analysis-${timestamp}.txt`);
+      toast({
+        title: "Export Successful",
+        description: "TXT file has been downloaded",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Unable to export TXT file",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <div className="flex space-x-2">
+    <div className="flex flex-wrap gap-2">
       <Button
         onClick={handleExportJSON}
         variant="outline"
-        className="bg-accent hover:bg-accent/90 text-accent-foreground"
+        size="sm"
+        className="bg-accent hover:bg-accent/90 text-accent-foreground text-xs sm:text-sm"
         data-testid="button-export-json"
       >
-        <Download className="w-4 h-4 mr-2" />
-        Export JSON
+        <Download className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+        <span className="hidden sm:inline">Export JSON</span>
+        <span className="sm:hidden ml-1">JSON</span>
       </Button>
       <Button
         onClick={handleExportCSV}
         variant="outline"
-        className="bg-accent hover:bg-accent/90 text-accent-foreground"
+        size="sm"
+        className="bg-accent hover:bg-accent/90 text-accent-foreground text-xs sm:text-sm"
         data-testid="button-export-csv"
       >
-        <Download className="w-4 h-4 mr-2" />
-        Export CSV
+        <Download className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+        <span className="hidden sm:inline">Export CSV</span>
+        <span className="sm:hidden ml-1">CSV</span>
+      </Button>
+      <Button
+        onClick={handleExportTXT}
+        variant="outline"
+        size="sm"
+        className="bg-accent hover:bg-accent/90 text-accent-foreground text-xs sm:text-sm"
+        data-testid="button-export-txt"
+      >
+        <Download className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+        <span className="hidden sm:inline">Export TXT</span>
+        <span className="sm:hidden ml-1">TXT</span>
       </Button>
     </div>
   );
