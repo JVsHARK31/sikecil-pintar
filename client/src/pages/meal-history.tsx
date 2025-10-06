@@ -16,19 +16,23 @@ interface MealHistoryProps {
 export function MealHistory({ onBack }: MealHistoryProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
+  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('all');
 
   const { data: meals = [], isLoading } = useQuery({
     queryKey: ['meals', selectedPeriod],
     queryFn: async () => {
+      console.log('[Meal History] Fetching meals for period:', selectedPeriod);
+      let fetchedMeals;
       if (selectedPeriod === 'all') {
-        return getMeals();
+        fetchedMeals = getMeals();
       } else {
         const endDate = new Date();
         const startDate = new Date();
         startDate.setDate(endDate.getDate() - (selectedPeriod === 'week' ? 7 : 30));
-        return getMealsByDateRange(startDate, endDate);
+        fetchedMeals = getMealsByDateRange(startDate, endDate);
       }
+      console.log('[Meal History] Fetched meals count:', fetchedMeals.length);
+      return fetchedMeals;
     },
   });
 

@@ -78,20 +78,26 @@ export default function Home() {
       analysisData: NutritionAnalysis; 
       imageUrl?: string; 
     }) => {
-      return addMeal(mealData);
+      console.log('[Save Meal] Saving meal:', mealData.mealType);
+      const savedMeal = addMeal(mealData);
+      console.log('[Save Meal] Meal saved successfully:', savedMeal.id);
+      return savedMeal;
     },
-    onSuccess: () => {
+    onSuccess: (savedMeal) => {
+      console.log('[Save Meal] Invalidating queries and refetching');
       queryClient.invalidateQueries({ queryKey: ['meals'] });
+      queryClient.refetchQueries({ queryKey: ['meals'] });
       toast({
-        title: "Meal saved!",
-        description: "Your meal has been added to your history.",
+        title: "Makanan tersimpan!",
+        description: "Makanan berhasil ditambahkan ke riwayat Anda.",
       });
     },
     onError: (error: Error) => {
+      console.error('[Save Meal] Error saving meal:', error);
       toast({
         variant: "destructive",
-        title: "Save failed",
-        description: error.message || "Failed to save meal",
+        title: "Gagal menyimpan",
+        description: error.message || "Gagal menyimpan makanan",
       });
     },
   });

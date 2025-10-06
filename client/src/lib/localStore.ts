@@ -27,9 +27,11 @@ const GOALS_KEY = 'nutrition:goals';
 export function getMeals(): LocalMeal[] {
   try {
     const stored = localStorage.getItem(MEALS_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const meals = stored ? JSON.parse(stored) : [];
+    console.log('[LocalStore] getMeals() - Found', meals.length, 'meals in localStorage');
+    return meals;
   } catch (error) {
-    console.error('Failed to load meals from localStorage:', error);
+    console.error('[LocalStore] Failed to load meals from localStorage:', error);
     return [];
   }
 }
@@ -49,12 +51,14 @@ export function addMeal(mealData: {
     createdAt: new Date().toISOString(),
   };
   
+  console.log('[LocalStore] Adding new meal:', newMeal.id, newMeal.mealType);
   meals.unshift(newMeal); // Add to beginning
   
   try {
     localStorage.setItem(MEALS_KEY, JSON.stringify(meals));
+    console.log('[LocalStore] Successfully saved meal to localStorage. Total meals:', meals.length);
   } catch (error) {
-    console.error('Failed to save meal to localStorage:', error);
+    console.error('[LocalStore] Failed to save meal to localStorage:', error);
     throw new Error('Failed to save meal');
   }
   
