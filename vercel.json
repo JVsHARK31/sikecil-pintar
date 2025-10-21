@@ -1,20 +1,11 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "vite build",
   "outputDirectory": "dist",
-  "framework": null,
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/index.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/api"
     }
-  ],
-  "functions": {
-    "dist/index.js": {
-      "maxDuration": 10
-    }
-  }
+  ]
 }
