@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+
+# Environment files
+.env
+.env.local
+.env.development
+
+# Git
+.git
+.gitignore
+
+# Development files
+*.log
+*.md
+tsconfig.tsbuildinfo
+vite.config.ts.*
+
+# Scripts and configuration
+scripts
+drizzle.config.ts
+migrations
+
+# Local files
+.local
+
+# Test files
+**/*.test.*
+**/*.spec.*
+
+# Screenshots and images
+*.png
+*.jpg
+*.jpeg
+attached_assets
